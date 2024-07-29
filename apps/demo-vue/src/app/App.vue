@@ -4,8 +4,8 @@
 
     <div class="wrapper">
 
-    <LazyVirtualList
-      class="test"
+    <LazyVirtualScroll
+      class="demo"
       @load="handleLoad"
       :datasets="formattedDatasets"
       :totalItems="totalItems"
@@ -34,15 +34,14 @@
           Loading item {{ index }}...
         </div>
       </template>
-    </LazyVirtualList>
+    </LazyVirtualScroll>
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import { ref, computed, Ref } from 'vue';
-import LazyVirtualList from '@lvl-ui/vue'; 
-import type { Dataset } from '@lvl-ui/core';
+import LazyVirtualScroll, { type Dataset, type LoadEventPayload } from 'vue-lazy-virtual-scroll';
 
 function generateMockDatasets(totalItems: number, itemsPerDataset: number): Dataset[] {
   const datasets: Dataset[] = [];
@@ -60,7 +59,7 @@ function generateMockDatasets(totalItems: number, itemsPerDataset: number): Data
 export default {
   name: 'App',
   components: {
-    LazyVirtualList,
+    LazyVirtualScroll,
   },
   setup() {
 
@@ -92,7 +91,7 @@ export default {
       }
       openItems.value = { ...openItems.value };
     }
-    function handleLoad(v: any) {
+    function handleLoad(v: LoadEventPayload) {
       console.log('handleLoad', v)
     }
     const actualLen = formattedDatasets.value.map((d: any) => d.data).flat();
@@ -108,7 +107,7 @@ export default {
 </script>
 
 <style lang="scss">
-.test {
+.demo {
   height: 100%;
   min-height: 100%;
   width: 100%;

@@ -23,7 +23,7 @@
 </template>
 
 <script lang="ts" setup>
-import { resolveIndexes, fillItemArray, type Dataset } from '@lvl-ui/core';
+import { resolveIndexes, fillItemArray, type Dataset } from '@core';
 import { computed, ref, watch, defineProps, defineEmits, onMounted, onUnmounted, nextTick, toRefs } from 'vue';
 import type { PropType, Ref } from 'vue';
 import { useDebounceFn } from './useDebounceFn';

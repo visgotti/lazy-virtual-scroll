@@ -8,9 +8,7 @@
     "jsxImportSource": "vue",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "paths": {
-      "@lvl-ui/core": ["../../libs/core/src/index.ts"],
-    }
+
   },
   "files": [],
   "include": [],

@@ -1,0 +1,9 @@
+{
+  "name": "react-lazy-virtual-scroll",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "react-lazy-virtual-scroll/src",
+  "projectType": "library",
+  "tags": [],
+  "// targets": "to see all targets run: nx show project react-lazy-virtual-scroll --web",
+  "targets": {}
+}

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import LazyVirtualList from '@lvl-ui/react';
-import type { Dataset } from '@lvl-ui/core';
+import LazyVirtualScroll, { type Dataset, type LoadEventPayload } from 'react-lazy-virtual-scroll';
 import './app.scss';
 
 function generateMockDatasets(totalItems: number, itemsPerDataset: number): Dataset[] {
@@ -47,7 +46,7 @@ const App: React.FC = () => {
     }
   }
 
-  const handleLoad = (v: { startIndex: number; endIndex: number }) => {
+  const handleLoad = (v: LoadEventPayload) => {
     console.log('handleLoad', v);
   };
 
@@ -55,7 +54,8 @@ const App: React.FC = () => {
     <div>
       <h1>Lazy Virtual List Example</h1>
       <div className="wrapper">
-        <LazyVirtualList
+        <LazyVirtualScroll
+          className="demo"
           onLoad={handleLoad}
           datasets={formattedDatasets}
           totalItems={totalItems}
@@ -67,15 +67,33 @@ const App: React.FC = () => {
           scrollThrottle={0}
           renderLoading={(index: number) => {
             return (
-              <div className="item"> Loading... {index} </div>
+              <div className="item loading"> Loading... {index} </div>
             )
           }}
           render={(index: number, item: any) => {
             return (
-              <div className="item">
+              <div className={`item${(index in openItems) ? ' expanded' : ''}`}>
                 ITEM: { index  }
-                <span onClick={(e) => handleToggleExpand(index)}>▲</span>
-                <span onClick={() => handleToggleExpand(index)}>▼</span>
+                {
+                  item.isExpanded && (
+                    <span onClick={(e) => handleToggleExpand(index)}>▲</span>
+                  )
+                }
+                {
+                  !item.isExpanded && (
+                    <span onClick={() => handleToggleExpand(index)}>▼</span>
+                  )
+                }
+                {
+                  item.isExpanded && (
+                    <div
+                      style={{
+                        height: `${openItems[index]}px`,
+                        minHeight:  `${openItems[index]}px`,
+                      }}
+                    />
+                  )
+                }
               </div>
             )
           }}

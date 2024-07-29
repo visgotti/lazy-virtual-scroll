@@ -8,7 +8,7 @@
     "types": ["vite/client", "vitest"],
     "baseUrl": ".",
     "paths": {
-      "@lvl-ui/core": ["../../libs/core/src/index.ts"]
+      "@core": ["../../libs/core/src/index.ts"]
     }
   },
   "files": [],

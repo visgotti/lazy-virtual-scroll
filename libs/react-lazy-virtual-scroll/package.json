@@ -1,5 +1,5 @@
 {
-  "name": "@lvl-ui/lvl-react",
+  "name": "react-lazy-virtual-scroll",
   "version": "0.0.1",
   "main": "./index.js",
   "types": "./index.d.ts",

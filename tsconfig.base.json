@@ -15,9 +15,9 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@lvl-ui/core": ["libs/core/src/index.ts"],
-      "@lvl-ui/react": ["libs/lvl-react/src/index.ts"],
-      "@lvl-ui/vue": ["libs/lvl-vue/src/index.ts"]
+      "@core": ["libs/core/src/index.ts"],
+      "react-lazy-virtual-scroll": ["libs/react-lazy-virtual-scroll/src/index.ts"],
+      "vue-lazy-virtual-scroll": ["libs/vue-lazy-virtual-scroll/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

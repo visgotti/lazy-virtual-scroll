@@ -1,9 +1,0 @@
-{
-  "name": "lvl-react",
-  "$schema": "../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "lvl-react/src",
-  "projectType": "library",
-  "tags": [],
-  "// targets": "to see all targets run: nx show project lvl-react --web",
-  "targets": {}
-}

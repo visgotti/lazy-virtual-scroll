@@ -7,13 +7,7 @@
     "jsx": "preserve",
     "jsxImportSource": "vue",
     "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@lvl-ui/vue": ["../../libs/lvl-vue/src/index.ts"],
-      "@lvl-ui/core": ["../../libs/core/src/index.ts"]
-
-    }
+    "resolveJsonModule": true
   },
   "files": [],
   "include": [],

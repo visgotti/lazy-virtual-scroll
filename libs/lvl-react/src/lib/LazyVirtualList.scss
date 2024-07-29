@@ -1,0 +1,11 @@
+.scroll-outer {
+  display: inline-block;
+  overflow: auto;
+}
+.scroll-inner {
+  overflow: hidden;
+  display: flex;
+}
+.list-item {
+  display: inline-block;
+}

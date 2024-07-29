@@ -1,0 +1,23 @@
+.wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: red;
+  .scroll-outer {
+    background-color: blue;
+    width: 100%;
+  }
+}
+.wrapper {
+  max-height: 600px;
+  height: 600px;
+  min-height: 600px;
+}
+.item {
+  &:hover {
+    background-color: darkblue;
+  }
+  max-height: 65px;
+  height: 65px;
+  min-height: 65px;
+}

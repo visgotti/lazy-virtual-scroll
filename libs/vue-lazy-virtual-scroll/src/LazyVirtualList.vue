@@ -90,6 +90,18 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  outerMaxLengthProp: {
+    type: String,
+    default: '100%'
+  },
+  outerMinLengthProp: {
+    type: String,
+    default: '100%'
+  },
+  outerLengthProp: {
+    type: String,
+    default: '100%'
+  },
 });
 
 
@@ -149,7 +161,6 @@ const finalArray = computed(() => {
 
 const handleScroll = (e?: any) => {
   if (!scrollOuter.value) return;
-  console.log('VIEW HIGHT BECAME', scrollOuter.value[clientLengthProp.value])
   const resolved = resolveIndexes({
     scrollTop: scrollOuter.value[scrollProp.value],
     viewHeight: scrollOuter.value[clientLengthProp.value],
@@ -160,7 +171,6 @@ const handleScroll = (e?: any) => {
   totalLength.value = resolved.totalItemHeight;
   scrollMargin.value = scrollOuter.value[scrollProp.value] - resolved.scrollTopPadding;
   scrollLength.value = totalLength.value - scrollMargin.value;
-  console.log('RESOLVED:', resolved)
   if (resolved.startIndex !== startIndex.value || resolved.endIndex !== endIndex.value) {
     startIndex.value = resolved.startIndex;
     endIndex.value = resolved.endIndex;
@@ -215,11 +225,34 @@ watch(scrollOuter, (v) => {
 });
 
 const scrollOuterStyleObject = computed(() => {
-  return {
-    [`max-${lengthProp.value}`]: '100%',
-    [`min-${lengthProp.value}`]: '100%',
+  const obj : { 
+    width?: string,
+    height?: string, 
+    'max-width'?: string,
+    'max-height'?: string,
+    'min-width'?: string,
+    'min-height'?: string,
+  } = {};
+  if(props.outerLengthProp) {
+    obj[lengthProp.value] = props.outerLengthProp;
   }
+  if(props.outerMinLengthProp) {
+    obj[`min-${lengthProp.value}`] = props.outerMinLengthProp;
+  }
+  if(props.outerMaxLengthProp) {
+    obj[`max-${lengthProp.value}`] = props.outerMaxLengthProp;
+  }
+  return obj
 });
+
+
+const lastTotalItems = ref(0);
+watch(props, () => {
+  if(props.totalItems !== lastTotalItems.value) {
+    lastTotalItems.value = props.totalItems;
+    handleScroll();
+  }
+}, { deep: true });
 
 const scrollInnerStyleObject = computed(() => {
   return {

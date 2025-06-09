@@ -90,6 +90,18 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  outerMaxLengthProp: {
+    type: String,
+    default: '100%'
+  },
+  outerMinLengthProp: {
+    type: String,
+    default: '100%'
+  },
+  outerLengthProp: {
+    type: String,
+    default: '100%'
+  },
 });
 
 
@@ -213,11 +225,34 @@ watch(scrollOuter, (v) => {
 });
 
 const scrollOuterStyleObject = computed(() => {
-  return {
-    [`max-${lengthProp.value}`]: '100%',
-    [`min-${lengthProp.value}`]: '100%',
+  const obj : { 
+    width?: string,
+    height?: string, 
+    'max-width'?: string,
+    'max-height'?: string,
+    'min-width'?: string,
+    'min-height'?: string,
+  } = {};
+  if(props.outerLengthProp) {
+    obj[lengthProp.value] = props.outerLengthProp;
   }
+  if(props.outerMinLengthProp) {
+    obj[`min-${lengthProp.value}`] = props.outerMinLengthProp;
+  }
+  if(props.outerMaxLengthProp) {
+    obj[`max-${lengthProp.value}`] = props.outerMaxLengthProp;
+  }
+  return obj
 });
+
+
+const lastTotalItems = ref(0);
+watch(props, () => {
+  if(props.totalItems !== lastTotalItems.value) {
+    lastTotalItems.value = props.totalItems;
+    handleScroll();
+  }
+}, { deep: true });
 
 const scrollInnerStyleObject = computed(() => {
   return {

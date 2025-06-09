@@ -149,7 +149,6 @@ const finalArray = computed(() => {
 
 const handleScroll = (e?: any) => {
   if (!scrollOuter.value) return;
-  console.log('VIEW HIGHT BECAME', scrollOuter.value[clientLengthProp.value])
   const resolved = resolveIndexes({
     scrollTop: scrollOuter.value[scrollProp.value],
     viewHeight: scrollOuter.value[clientLengthProp.value],
@@ -160,7 +159,6 @@ const handleScroll = (e?: any) => {
   totalLength.value = resolved.totalItemHeight;
   scrollMargin.value = scrollOuter.value[scrollProp.value] - resolved.scrollTopPadding;
   scrollLength.value = totalLength.value - scrollMargin.value;
-  console.log('RESOLVED:', resolved)
   if (resolved.startIndex !== startIndex.value || resolved.endIndex !== endIndex.value) {
     startIndex.value = resolved.startIndex;
     endIndex.value = resolved.endIndex;

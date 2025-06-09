@@ -4,6 +4,7 @@ import vue from '@vitejs/plugin-vue';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import { generateNx } from 'generate-package-json';
 
 export default defineConfig({
   root: __dirname,
@@ -16,6 +17,15 @@ export default defineConfig({
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
     }),
+    {
+      name: 'custom-build-plugin',
+      apply: 'build',
+      buildStart() {
+        if (process.env.NODE_ENV === 'production') {
+          generateNx('./', '../../', './');
+        }
+      },
+    },
   ],
 
   // Uncomment this if you are using workers.
@@ -26,7 +36,7 @@ export default defineConfig({
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
   build: {
-    outDir: '../../dist/vue-lazy-virtual-scroll',
+    outDir: '../../dist/libs/vue-lazy-virtual-scroll',
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {

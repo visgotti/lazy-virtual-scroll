@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useEffect, useRef, useState, useMemo, type PropsWithChildren } from 'react';
+import React, { ReactNode, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { resolveIndexes, fillItemArray, type Dataset } from '@core';
 import { useDebounceFn } from './useDebounceFn';
 import { useThrottle } from './useThrottle';
@@ -54,6 +54,13 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
   const [scrollMargin, setScrollMargin] = useState(0);
   const [internalDynamicSizes, setInternalDynamicSizes] = useState<{ [key: number]: number }>({});
 
+  // Use refs to avoid stale closures
+  const internalDynamicSizesRef = useRef(internalDynamicSizes);
+  internalDynamicSizesRef.current = internalDynamicSizes;
+  
+  // Track if we're currently updating to prevent feedback loops
+  const isUpdatingRef = useRef(false);
+
   useEffect(() => {
     if (scrollThrottle && scrollDebounce && scrollThrottle > scrollDebounce) {
       console.warn(
@@ -71,56 +78,46 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
   const shouldSortDatasets = useMemo(() => {
     return datasets?.length && sortDatasets;
   }, [datasets, sortDatasets]);
+  
   const resizeObservers = useRef<{[index: string]: { el: HTMLElement, observer: ResizeObserver } }>({});
 
-  useEffect(() => {
-    handleScroll();
-  }, [dynamicSizes, totalItems]);
+  // Combine dynamic sizes properly
+  const dynamicSizesRef = useMemo(() => {
+    return autoDetectSizes ? internalDynamicSizes : dynamicSizes;
+  }, [autoDetectSizes, internalDynamicSizes, dynamicSizes]);
 
-  
-const orderedDatasets = useMemo(() => {
-  const datasetsEnsured = datasets || [{
-    startingIndex: 0, 
-    data: data || []
-  }];
+  const orderedDatasets = useMemo(() => {
+    const datasetsEnsured = datasets || [{
+      startingIndex: 0, 
+      data: data || []
+    }];
 
-  if (!shouldSortDatasets) {
-    return datasetsEnsured;
-  } 
-  return datasetsEnsured.sort((a, b) => a.startingIndex - b.startingIndex);
-}, [datasets, data, shouldSortDatasets]);
+    if (!shouldSortDatasets) {
+      return datasetsEnsured;
+    } 
+    return datasetsEnsured.sort((a, b) => a.startingIndex - b.startingIndex);
+  }, [datasets, data, shouldSortDatasets]);
 
-const finalArray = useMemo(() => {
-  // console.log('fillItemArray', { orderedDatasets, startIndex, endIndex })
-  return fillItemArray({
-    orderedDatasets,
-    startIndex,
-    endIndex,
-  });
-}, [orderedDatasets, startIndex, endIndex]);
+  const finalArray = useMemo(() => {
+    return fillItemArray({
+      orderedDatasets,
+      startIndex,
+      endIndex,
+    });
+  }, [orderedDatasets, startIndex, endIndex]);
 
-  //console.log('finalArray', finalArray);
-  const handleScroll = () => {
-    if (!scrollOuterRef.current) return;
+  const handleScroll = useCallback(() => {
+    if (!scrollOuterRef.current || isUpdatingRef.current) return;
     
-    /*
-    console.log({
-      scrollTop: scrollOuterRef.current[scrollProp],
-      viewHeight: scrollOuterRef.current[clientLengthProp],
-      itemSize,
-      totalItems,
-      itemBuffer,
-      dynamicSizes: internalDynamicSizes,
-    }) */
     const resolved = resolveIndexes({
       scrollTop: scrollOuterRef.current[scrollProp],
       viewHeight: scrollOuterRef.current[clientLengthProp],
       itemSize,
       totalItems,
       itemBuffer,
-      dynamicSizes: internalDynamicSizes,
+      dynamicSizes: internalDynamicSizesRef.current,
     });
-     // console.log('RESOLVED:', resolved);
+
     setTotalLength(resolved.totalItemHeight);
     const nextScrollMargin = scrollOuterRef.current[scrollProp] - resolved.scrollTopPadding;
     setScrollMargin(nextScrollMargin)
@@ -133,10 +130,16 @@ const finalArray = useMemo(() => {
         onLoad({ startIndex: resolved.startIndex, endIndex: resolved.endIndex });
       }
     }
-  };
+  }, [scrollProp, clientLengthProp, itemSize, totalItems, itemBuffer, startIndex, endIndex, onLoad]);
 
-  const throttledScroll = useThrottle(handleScroll, scrollThrottle, scrollDebounce || scrollThrottle)
-  const debouncedScroll = useDebounceFn(handleScroll, scrollDebounce)
+  // Effect to trigger handleScroll when dynamic sizes change - but debounced
+  const debouncedHandleScrollForSizes = useDebounceFn(handleScroll, 16); // ~60fps
+  useEffect(() => {
+    debouncedHandleScrollForSizes();
+  }, [debouncedHandleScrollForSizes, totalItems]);
+
+  const throttledScroll = scrollThrottle ? useThrottle(handleScroll, scrollThrottle, scrollDebounce || scrollThrottle) : handleScroll;
+  const debouncedScroll = scrollDebounce ? useDebounceFn(handleScroll, scrollDebounce) : throttledScroll;
 
   useEffect(() => {
     window.addEventListener('scroll', debouncedScroll);
@@ -144,66 +147,95 @@ const finalArray = useMemo(() => {
     return () => {
       window.removeEventListener('scroll', debouncedScroll);
       window.removeEventListener('resize', debouncedScroll);
+      // Cleanup all observers
+      Object.values(resizeObservers.current).forEach(({ observer }) => observer.disconnect());
     };
   }, [debouncedScroll]);
 
-  const handleScrollOuterRef = useCallback((node: HTMLElement) => {
+  const handleScrollOuterRef = useCallback((node: HTMLElement | null) => {
     scrollOuterRef.current = node;
     if (!scrollOuterRef.current) return;
+    
     scrollOuterRef.current.onscroll = () => {
       debouncedScroll();
       if (onScroll && scrollOuterRef.current) {
         onScroll(scrollOuterRef.current[scrollProp]);
       }
     };
-    if (scrollStart) {
-      scrollOuterRef.current[scrollProp] = scrollStart;
-      handleScroll();
-    }
-  }, []) as any;
-
-  const setItemRef = useCallback((index: number, el: HTMLElement) => {
-    if (el && autoDetectSizes) {
-      const finalIndex = startIndex + index;
-    //   console.log({ startIndex, index })
-      const existingObserver2 = resizeObservers.current[finalIndex];
-      if(existingObserver2) {
-        return;
-        console.log('ALREADY EXISTED WAS SAME', existingObserver2.el === el);
-      }
-      const computeLength = () => {
-        const length = el.getBoundingClientRect()[lengthProp];
-        const style = window.getComputedStyle(el);
-        const margin1 = parseFloat(style[marginProp]);
-        const margin2 = parseFloat(style[marginProp2]);
-        const finalLength = Math.max(length + margin1 + margin2, minItemSize);
-        const copiedDynamicSizes = {...internalDynamicSizes}
-        if(finalLength !== itemSize) {
-          copiedDynamicSizes[finalIndex] = finalLength;
-        } else {
-          delete copiedDynamicSizes[finalIndex];
-        }
-        setInternalDynamicSizes(copiedDynamicSizes);
-      }
-      handleScroll();
-      setTimeout(() => {
-        computeLength();
-
     
-        const existingObserver = resizeObservers.current[finalIndex];
-        if (existingObserver) {
-          if(existingObserver.el === el) {
-            return;
-          }
-          existingObserver.observer.disconnect();
-          delete resizeObservers.current[finalIndex];
+    // Handle initial scroll position
+    if (scrollStart) {
+      setTimeout(() => {
+        if (scrollOuterRef.current) {
+          scrollOuterRef.current[scrollProp] = scrollStart;
+          handleScroll();
         }
-        resizeObservers.current[finalIndex] = { observer: new ResizeObserver(computeLength), el }
-      }, 1);
-        
+      }, 0);
+    } else {
+      handleScroll();
     }
-  }, [setInternalDynamicSizes, internalDynamicSizes, marginProp, marginProp2, autoDetectSizes, itemSize, lengthProp, minItemSize, startIndex]);
+  }, [debouncedScroll, onScroll, scrollProp, scrollStart, handleScroll]);
 
+  const setItemRef = useCallback((index: number, el: HTMLElement | null) => {
+    if (!el || !autoDetectSizes) return;
+    
+    const finalIndex = startIndex + index;
+    
+    const computeLength = () => {
+      if (isUpdatingRef.current) return;
+      
+      const length = el.getBoundingClientRect()[lengthProp];
+      const style = window.getComputedStyle(el);
+      const margin1 = parseFloat(style[marginProp]);
+      const margin2 = parseFloat(style[marginProp2]);
+      const finalLength = Math.max(length + margin1 + margin2, minItemSize);
+      
+      // Only update if the size actually changed significantly
+      const currentSize = internalDynamicSizesRef.current[finalIndex];
+      const shouldUpdate = Math.abs((currentSize || itemSize) - finalLength) > 1;
+      
+      if (shouldUpdate) {
+        isUpdatingRef.current = true;
+        setInternalDynamicSizes(prevSizes => {
+          const newSizes = { ...prevSizes };
+          if (finalLength !== itemSize) {
+            newSizes[finalIndex] = finalLength;
+          } else {
+            delete newSizes[finalIndex];
+          }
+          return newSizes;
+        });
+        // Reset flag after state update
+        setTimeout(() => {
+          isUpdatingRef.current = false;
+        }, 0);
+      }
+    };
+
+    // Use requestAnimationFrame for better timing
+    requestAnimationFrame(() => {
+      computeLength();
+      
+      // Handle resize observer
+      const existingObserver = resizeObservers.current[finalIndex];
+      if (existingObserver) {
+        if (existingObserver.el === el) {
+          return; // Same element, no need to recreate observer
+        }
+        existingObserver.observer.disconnect();
+        delete resizeObservers.current[finalIndex];
+      }
+      
+      const observer = new ResizeObserver(() => {
+        // Debounce resize observer callbacks
+        setTimeout(computeLength, 16);
+      });
+      observer.observe(el);
+      resizeObservers.current[finalIndex] = { observer, el };
+    });
+  }, [autoDetectSizes, startIndex, lengthProp, marginProp, marginProp2, minItemSize, itemSize]);
+
+  // Cleanup observers for items no longer in view
   useEffect(() => {
     Object.keys(resizeObservers.current).forEach((key) => {
       const observerIndex = parseInt(key);
@@ -227,7 +259,7 @@ const finalArray = useMemo(() => {
     return { 
       [`max${capitalize(lengthProp)}`]: '100%', 
       [`min${capitalize(lengthProp)}`]: '100%' 
-    };;
+    };
   }, [lengthProp]);
 
   const innerStyle = useMemo(() => {
@@ -247,7 +279,7 @@ const finalArray = useMemo(() => {
           <div
             key={index}
             className="list-item"
-            ref={(el) => setItemRef(index, el as HTMLElement)}
+            ref={(el) => autoDetectSizes ? setItemRef(index, el) : undefined}
           >
             {
               (!item && !!renderLoading) ? 

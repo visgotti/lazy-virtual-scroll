@@ -1,9 +1,9 @@
 {
-  "name": "lvl-vue",
+  "name": "vue-lazy-virtual-scroll",
   "$schema": "../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "lvl-vue/src",
+  "sourceRoot": "vue-lazy-virtual-scroll/src",
   "projectType": "library",
   "tags": [],
-  "// targets": "to see all targets run: nx show project lvl-vue --web",
+  "// targets": "to see all targets run: nx show project vue-lazy-virtual-scroll --web",
   "targets": {}
 }

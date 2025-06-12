@@ -1,6 +1,27 @@
 {
-  "name": "vue-lazy-virtual-scroll",
+  "name": "@lazy-virtual-scroll/vue",
   "version": "1.0.0",
+  "description": "A high-performance virtualized list component for Vue 3 that efficiently renders large datasets with dynamic sizing and lazy loading",
+  "license": "MIT",
+  "author": "visgotti",
+  "keywords": [
+    "vue",
+    "vue3",
+    "virtual-scroll",
+    "virtual-list",
+    "virtualized",
+    "lazy-loading",
+    "performance",
+    "infinite-scroll"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/visgotti/lazy-virtual-scroll"
+  },
+  "homepage": "https://github.com/visgotti/lazy-virtual-scroll",
+  "bugs": {
+    "url": "https://github.com/visgotti/lazy-virtual-scroll/issues"
+  },
   "main": "./index.js",
   "types": "./index.d.ts",
   "exports": {
@@ -8,5 +29,9 @@
       "import": "./index.mjs",
       "require": "./index.js"
     }
-  }
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "dependencies": {}
 }

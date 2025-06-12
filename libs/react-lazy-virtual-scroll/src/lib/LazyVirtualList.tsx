@@ -2,7 +2,6 @@ import React, { ReactNode, useCallback, useEffect, useRef, useState, useMemo } f
 import { resolveIndexes, fillItemArray, type Dataset } from '@core';
 import { useDebounceFn } from './useDebounceFn';
 import { useThrottle } from './useThrottle';
-import './LazyVirtualList.scss';
 
 interface VirtualListProps {
   className?: string;
@@ -257,6 +256,8 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
 
   const outerStyle = useMemo(() => {
     return { 
+      display: 'inline-block',
+      overflow: 'auto',
       [`max${capitalize(lengthProp)}`]: '100%', 
       [`min${capitalize(lengthProp)}`]: '100%' 
     };
@@ -264,6 +265,8 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
 
   const innerStyle = useMemo(() => {
     return { 
+      display: 'flex',
+      overflow: 'hidden',
       ['flexDirection']: direction, 
       [lengthProp]: `${scrollLength}px`,
       [`max${capitalize(lengthProp)}`]: `${scrollLength}px`, 
@@ -272,6 +275,10 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
      }
   }, [direction, lengthProp, scrollLength, scrollMargin, marginProp]);
   
+  const listItemStyle = {
+    display: 'inline-block'
+  }
+
   return (
     <div className={outerClassName} ref={handleScrollOuterRef} style={outerStyle}>
       <div className="scroll-inner" ref={scrollInnerRef} style={innerStyle}>
@@ -279,6 +286,7 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
           <div
             key={index}
             className="list-item"
+            style={listItemStyle}
             ref={(el) => autoDetectSizes ? setItemRef(index, el) : undefined}
           >
             {

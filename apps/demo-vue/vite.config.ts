@@ -1,11 +1,15 @@
-/// <reference types='vitest' />
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 
+// Check if we're building for GitHub Pages (using env variable)
+const isGithubPages = process.env.GITHUB_PAGES === 'true';
+const base = isGithubPages ? '/lazy-virtual-scroll/demo-vue/' : '/';
+
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/apps/demo-vue',
+  base,
 
   server: {
     port: 4200,
@@ -31,18 +35,5 @@ export default defineConfig({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
-  },
-
-  test: {
-    watch: false,
-    globals: true,
-    environment: 'jsdom',
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-
-    reporters: ['default'],
-    coverage: {
-      reportsDirectory: '../../coverage/apps/demo-vue',
-      provider: 'v8',
-    },
-  },
+  }
 });

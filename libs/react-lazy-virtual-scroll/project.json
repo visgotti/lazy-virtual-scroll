@@ -1,5 +1,5 @@
 {
-  "name": "react-lazy-virtual-scroll",
+  "name": "@lazy-virtual-scroll/react",
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "react-lazy-virtual-scroll/src",
   "projectType": "library",

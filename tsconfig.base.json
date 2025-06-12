@@ -16,8 +16,8 @@
     "baseUrl": ".",
     "paths": {
       "@core": ["libs/core/src/index.ts"],
-      "react-lazy-virtual-scroll": ["libs/react-lazy-virtual-scroll/src/index.ts"],
-      "vue-lazy-virtual-scroll": ["libs/vue-lazy-virtual-scroll/src/index.ts"]
+      "@lazy-virtual-scroll/react": ["libs/react-lazy-virtual-scroll/src/index.ts"],
+      "@lazy-virtual-scroll/vue": ["libs/vue-lazy-virtual-scroll/src/index.ts"],
     }
   },
   "exclude": ["node_modules", "tmp"]

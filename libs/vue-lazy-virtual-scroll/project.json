@@ -1,5 +1,5 @@
 {
-  "name": "vue-lazy-virtual-scroll",
+  "name": "@lazy-virtual-scroll/vue",
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "vue-lazy-virtual-scroll/src",
   "projectType": "library",

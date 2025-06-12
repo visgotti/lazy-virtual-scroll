@@ -1,11 +1,14 @@
 {
   "name": "core",
   "version": "1.0.0",
-  "devDependencies": {
-    "tslib": "^2.3.0"
-  },
+  "description": "Core utilities for lazy-virtual-scroll libraries",
+  "license": "MIT",
+  "author": "visgotti",
   "type": "commonjs",
   "main": "./src/index.js",
   "typings": "./src/index.d.ts",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "tslib": "^2.3.0"
+  }
 }

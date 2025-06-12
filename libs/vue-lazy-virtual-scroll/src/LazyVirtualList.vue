@@ -6,7 +6,7 @@
       :style="scrollInnerStyleObject"
     >
       <template v-if="autoDetectSizes">
-        <div v-for="(item, index) in finalArray" :key="index" class="list-item" :ref="(e) => setItemRef(index, e as HTMLElement)">
+        <div v-for="(item, index) in finalArray" :key="index" class="list-item" :ref="el => el && setItemRef(index, el as HTMLElement)">
           <slot name="default" v-if="item" :item="item" :index="startIndex + index"></slot>
           <slot name="loading" v-else :index="startIndex + index"></slot>
         </div>

@@ -1,0 +1,77 @@
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Allow manual triggers
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build React demo
+        run: npm run build:react-demo
+        env:
+          GITHUB_PAGES: 'true'
+      
+      - name: Build Vue demo
+        run: npm run build:vue-demo
+        env:
+          GITHUB_PAGES: 'true'
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Copy docs
+        run: |
+          mkdir -p ./gh-pages
+          cp -r ./docs/* ./gh-pages/
+      
+      - name: Copy React demo
+        run: |
+          mkdir -p ./gh-pages/demo-react
+          cp -r ./dist/apps/demo-react/* ./gh-pages/demo-react/
+      
+      - name: Copy Vue demo
+        run: |
+          mkdir -p ./gh-pages/demo-vue
+          cp -r ./dist/apps/demo-vue/* ./gh-pages/demo-vue/
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./gh-pages
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

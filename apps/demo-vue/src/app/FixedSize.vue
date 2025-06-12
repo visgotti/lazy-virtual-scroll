@@ -45,7 +45,7 @@
 
 <script lang="ts" setup>
 import { ref, computed, Ref, defineProps } from 'vue';
-import LazyVirtualScroll, { type Dataset, type LoadEventPayload } from 'vue-lazy-virtual-scroll';
+import LazyVirtualScroll, { type Dataset, type LoadEventPayload } from '@lazy-virtual-scroll/vue';
 import { type ScrollProps } from './ScrollPropControls.vue';
 
 // Define props for receiving scrollProps from parent

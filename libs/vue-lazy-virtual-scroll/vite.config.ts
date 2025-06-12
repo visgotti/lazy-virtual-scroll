@@ -1,14 +1,12 @@
-/// <reference types='vitest' />
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
-import { generateNx } from 'generate-package-json';
 
 export default defineConfig({
   root: __dirname,
-  cacheDir: '../../node_modules/.vite/vue-lazy-virtual-scroll',
+  cacheDir: '../../node_modules/.vite/lazy-virtual-scroll-vue',
 
   plugins: [
     vue(),
@@ -17,15 +15,6 @@ export default defineConfig({
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
     }),
-    {
-      name: 'custom-build-plugin',
-      apply: 'build',
-      buildStart() {
-        if (process.env.NODE_ENV === 'production') {
-          generateNx('./', '../../', './');
-        }
-      },
-    },
   ],
 
   // Uncomment this if you are using workers.
@@ -45,7 +34,7 @@ export default defineConfig({
     lib: {
       // Could also be a dictionary or array of multiple entry points.
       entry: 'src/index.ts',
-      name: 'vue-lazy-virtual-scroll',
+      name: '@lazy-virtual-scroll/vue',
       fileName: 'index',
       // Change this to the formats you want to support.
       // Don't forget to update your package.json as well.
@@ -53,20 +42,12 @@ export default defineConfig({
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
-      external: [],
+      external: ['vue'],
+      // Make sure @core is not treated as external
+      // so it gets bundled with the output
+      output: {
+        preserveModules: false, // This ensures everything gets bundled together
+      }
     },
-  },
-
-  test: {
-    watch: false,
-    globals: true,
-    environment: 'jsdom',
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-
-    reporters: ['default'],
-    coverage: {
-      reportsDirectory: '../../coverage/vue-lazy-virtual-scroll',
-      provider: 'v8',
-    },
-  },
+  }
 });

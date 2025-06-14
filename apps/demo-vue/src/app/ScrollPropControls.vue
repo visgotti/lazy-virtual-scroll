@@ -229,33 +229,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-
-export interface ScrollProps {
-  itemSize: number;
-  itemBuffer: number;
-  totalItems: number;
-  scrollStart: number;
-  scrollThrottle: number;
-  scrollDebounce: number;
-  minItemSize: number;
-  autoDetectSizes: boolean;
-  direction: 'row' | 'column';
-  sortDatasets: boolean;
-}
-
-// Default values for the scroll props
-const defaultProps: ScrollProps = {
-  itemSize: 65,
-  itemBuffer: 3,
-  totalItems: 300,
-  scrollStart: 0,
-  scrollThrottle: 0,
-  scrollDebounce: 100,
-  minItemSize: 0,
-  autoDetectSizes: true,
-  direction: 'column',
-  sortDatasets: true
-};
+import { type ScrollProps, defaultScrollProps } from '@lazy-virtual-scroll/core';
 
 const props = defineProps<{
   modelValue: ScrollProps;
@@ -284,7 +258,7 @@ const toggleDirection = () => {
 
 // Create a local copy of the model value
 const localModelValue = computed({
-  get: () => props.modelValue || { ...defaultProps },
+  get: () => props.modelValue || { ...defaultScrollProps },
   set: (value) => {
     emit('update:modelValue', value);
   }
@@ -301,7 +275,10 @@ watch(
 
 // Reset all values to their defaults
 const resetToDefaults = () => {
-  localModelValue.value = { ...defaultProps };
+  localModelValue.value = { 
+    ...defaultScrollProps,
+    totalItems: 300,
+  };
 };
 </script>
 

@@ -18,13 +18,15 @@ The core library handles the complex calculations needed for virtual scrolling, 
 Calculates which items should be rendered based on the current scroll position and viewport size.
 
 ```typescript
-function resolveIndexes({
-  scrollTop,
-  viewHeight,
-  itemSize,
-  totalItems,
-  itemBuffer,
-  dynamicSizes
+function resolveIndexes(params: {
+  scrollTop: number;
+  viewHeight: number;
+  itemSize: number;
+  totalItems: number;
+  itemBuffer?: number;
+  dynamicSizes?: { [key: number]: number };
+  direction?: 'row' | 'column';
+  minItemSize?: number;
 }): {
   startIndex: number;
   endIndex: number;
@@ -33,35 +35,65 @@ function resolveIndexes({
 }
 ```
 
-### `fillItemArray`
+### `fillAndFlattenDatasets`
 
 Populates an array with items from the provided datasets based on the calculated start and end indexes.
 
 ```typescript
-function fillItemArray({
-  orderedDatasets,
-  startIndex,
-  endIndex
+function fillAndFlattenDatasets(params: {
+  orderedDatasets: Dataset[];
+  startIndex: number;
+  endIndex: number;
 }): any[]
 ```
 
 ## Data Types
 
-### Dataset
+### ScrollProps
+
+The core configuration interface used by both React and Vue implementations:
 
 ```typescript
-type Dataset = {
-  startingIndex: number,
-  data: Array<any>
+interface ScrollProps<T=unknown, CSSPropOverrides=any> {
+  itemSize: number;                    // Base height/width of each item
+  minItemSize: number;                 // Minimum size for dynamically sized items
+  totalItems: number;                  // Total number of items in the list
+  scrollStart?: number;                // Initial scroll position
+  scrollThrottle?: number;             // Throttle scroll events (ms)
+  scrollDebounce?: number;             // Debounce scroll events (ms)
+  itemBuffer?: number;                 // Items to render outside viewport
+  sortDatasets?: boolean;              // Auto-sort datasets by startingIndex
+  direction?: 'row' | 'column';        // Scroll direction
+  autoDetectSizes?: boolean;           // Automatically detect item sizes
+  dynamicSizes?: { [itemIndex: string]: number }; // Manual size overrides
+  data?: T[];                          // Array of data items
+  datasets?: Dataset<T>[];             // Alternative fragmented datasets
+  scrollOuterStyleOverrides?: CSSPropOverrides; // Outer container styles
+  scrollInnerStyleOverrides?: CSSPropOverrides; // Inner container styles
+}
+```
+
+### Dataset
+
+### Dataset
+
+Represents a chunk of data with a starting index:
+
+```typescript
+type Dataset<T=unknown> = {
+  startingIndex: number;   // Index where this dataset starts
+  data: Array<T>;          // Array of items in this dataset
 }
 ```
 
 ### LoadEventPayload
 
+Payload for load and hide events:
+
 ```typescript
 type LoadEventPayload = {
-  startIndex: number,
-  endIndex: number,
+  startIndex: number;      // First visible/hidden item index
+  endIndex: number;        // Last visible/hidden item index
 }
 ```
 

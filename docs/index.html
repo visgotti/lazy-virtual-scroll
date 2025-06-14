@@ -283,12 +283,11 @@
           <div class="tab-pane fade show active" id="react" role="tabpanel">
             <p class="install-cmd">npm install @lazy-virtual-scroll/react</p>
             <div class="code-block">
-              <pre><code>import { LazyVirtualList } from '@lazy-virtual-scroll/react';
+              <pre><code>import LazyVirtualList from '@lazy-virtual-scroll/react';
 
 const App = () => {
   const items = Array.from({ length: 10000 }, (_, i) => ({
     id: i,
-    height: Math.floor(Math.random() * 50) + 50,
     content: `Item ${i}`
   }));
 
@@ -296,10 +295,29 @@ const App = () => {
     &lt;div style={{ height: '500px', width: '100%' }}>
       &lt;LazyVirtualList
         totalItems={items.length}
-        itemSize={80}
-        renderItem={({ index, style }) => (
-          &lt;div style={style}>
-            {items[index].content}
+        itemSize={60}
+        data={items}
+        onLoad={({ startIndex, endIndex }) => {
+          console.log(`Loading items ${startIndex} to ${endIndex}`);
+        }}
+        render={(index, item) => (
+          &lt;div style={{ 
+            height: '60px', 
+            padding: '10px', 
+            borderBottom: '1px solid #eee',
+            boxSizing: 'border-box' 
+          }}>
+            {item ? item.content : 'Loading...'}
+          &lt;/div>
+        )}
+        renderLoading={(index) => (
+          &lt;div style={{ 
+            height: '60px', 
+            padding: '10px', 
+            backgroundColor: '#f5f5f5',
+            boxSizing: 'border-box'
+          }}>
+            Loading item {index}...
           &lt;/div>
         )}
       />
@@ -315,13 +333,29 @@ const App = () => {
   &lt;div style="height: 500px; width: 100%">
     &lt;LazyVirtualList
       :totalItems="items.length"
-      :itemSize="80"
+      :itemSize="60"
       :data="items"
-      direction="column"
+      @load="handleLoad"
+      @hide="handleHide"
     >
-      &lt;template #default="{ item, index, style }">
-        &lt;div :style="style">
-          {{ item.content }}
+      &lt;template #default="{ item, index }">
+        &lt;div style="
+          height: 60px; 
+          padding: 10px; 
+          border-bottom: 1px solid #eee;
+          box-sizing: border-box;
+        ">
+          {{ item ? item.content : 'Loading...' }}
+        &lt;/div>
+      &lt;/template>
+      &lt;template #loading="{ index }">
+        &lt;div style="
+          height: 60px; 
+          padding: 10px; 
+          background-color: #f5f5f5;
+          box-sizing: border-box;
+        ">
+          Loading item {{ index }}...
         &lt;/div>
       &lt;/template>
     &lt;/LazyVirtualList>
@@ -329,13 +363,20 @@ const App = () => {
 &lt;/template>
 
 &lt;script setup>
-import { LazyVirtualList } from '@lazy-virtual-scroll/vue';
+import LazyVirtualList from '@lazy-virtual-scroll/vue';
 
 const items = Array.from({ length: 10000 }, (_, i) => ({
   id: i,
-  height: Math.floor(Math.random() * 50) + 50,
   content: `Item ${i}`
 }));
+
+const handleLoad = ({ startIndex, endIndex }) => {
+  console.log(`Loading items ${startIndex} to ${endIndex}`);
+};
+
+const handleHide = ({ startIndex, endIndex }) => {
+  console.log(`Hiding items ${startIndex} to ${endIndex}`);
+};
 &lt;/script></code></pre>
             </div>
           </div>
@@ -427,19 +468,37 @@ const items = Array.from({ length: 10000 }, (_, i) => ({
                     <td><code>totalItems</code></td>
                     <td>number</td>
                     <td>required</td>
-                    <td>Total number of items to render</td>
+                    <td>Total number of items in the list</td>
                   </tr>
                   <tr>
                     <td><code>itemSize</code></td>
                     <td>number</td>
                     <td>required</td>
-                    <td>Average height (or width) of items in pixels</td>
+                    <td>Base height/width of each item in pixels</td>
                   </tr>
                   <tr>
-                    <td><code>renderItem</code></td>
+                    <td><code>render</code></td>
                     <td>function</td>
                     <td>required</td>
-                    <td>Function to render each item with signature <code>({ index, style }) => ReactNode</code></td>
+                    <td>Function to render each item: <code>(index, item) => ReactNode</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>renderLoading</code></td>
+                    <td>function</td>
+                    <td>optional</td>
+                    <td>Function to render loading state: <code>(index) => ReactNode</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>onLoad</code></td>
+                    <td>function</td>
+                    <td>optional</td>
+                    <td>Callback when items become visible: <code>({startIndex, endIndex}) => void</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>onHide</code></td>
+                    <td>function</td>
+                    <td>optional</td>
+                    <td>Callback when items go out of view: <code>({startIndex, endIndex}) => void</code></td>
                   </tr>
                   <tr>
                     <td><code>direction</code></td>
@@ -448,10 +507,22 @@ const items = Array.from({ length: 10000 }, (_, i) => ({
                     <td>Scroll direction ('column' or 'row')</td>
                   </tr>
                   <tr>
-                    <td><code>overscan</code></td>
+                    <td><code>itemBuffer</code></td>
                     <td>number</td>
                     <td>3</td>
-                    <td>Number of items to render outside the visible area</td>
+                    <td>Number of items to render outside visible area</td>
+                  </tr>
+                  <tr>
+                    <td><code>autoDetectSizes</code></td>
+                    <td>boolean</td>
+                    <td>false</td>
+                    <td>Automatically detect item sizes</td>
+                  </tr>
+                  <tr>
+                    <td><code>dynamicSizes</code></td>
+                    <td>object</td>
+                    <td>{}</td>
+                    <td>Manual size overrides for specific items</td>
                   </tr>
                 </tbody>
               </table>
@@ -460,11 +531,11 @@ const items = Array.from({ length: 10000 }, (_, i) => ({
           </div>
           <div class="tab-pane fade" id="vue-doc" role="tabpanel">
             <div class="p-4">
-              <h4>Vue LazyVirtualList Props</h4>
+              <h4>Vue LazyVirtualList Props & Events</h4>
               <table class="table table-striped">
                 <thead>
                   <tr>
-                    <th>Prop</th>
+                    <th>Prop/Event</th>
                     <th>Type</th>
                     <th>Default</th>
                     <th>Description</th>
@@ -475,13 +546,13 @@ const items = Array.from({ length: 10000 }, (_, i) => ({
                     <td><code>totalItems</code></td>
                     <td>number</td>
                     <td>required</td>
-                    <td>Total number of items to render</td>
+                    <td>Total number of items in the list</td>
                   </tr>
                   <tr>
                     <td><code>itemSize</code></td>
                     <td>number</td>
                     <td>required</td>
-                    <td>Average height (or width) of items in pixels</td>
+                    <td>Base height/width of each item in pixels</td>
                   </tr>
                   <tr>
                     <td><code>data</code></td>
@@ -490,16 +561,62 @@ const items = Array.from({ length: 10000 }, (_, i) => ({
                     <td>Array of data items to render</td>
                   </tr>
                   <tr>
+                    <td><code>@load</code></td>
+                    <td>event</td>
+                    <td>-</td>
+                    <td>Emitted when items become visible: <code>({startIndex, endIndex})</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>@hide</code></td>
+                    <td>event</td>
+                    <td>-</td>
+                    <td>Emitted when items go out of view: <code>({startIndex, endIndex})</code></td>
+                  </tr>
+                  <tr>
                     <td><code>direction</code></td>
                     <td>string</td>
                     <td>'column'</td>
                     <td>Scroll direction ('column' or 'row')</td>
                   </tr>
                   <tr>
-                    <td><code>overscan</code></td>
+                    <td><code>itemBuffer</code></td>
                     <td>number</td>
                     <td>3</td>
-                    <td>Number of items to render outside the visible area</td>
+                    <td>Number of items to render outside visible area</td>
+                  </tr>
+                  <tr>
+                    <td><code>autoDetectSizes</code></td>
+                    <td>boolean</td>
+                    <td>false</td>
+                    <td>Automatically detect item sizes</td>
+                  </tr>
+                  <tr>
+                    <td><code>dynamicSizes</code></td>
+                    <td>object</td>
+                    <td>{}</td>
+                    <td>Manual size overrides for specific items</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="mt-4">Slots</h5>
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Slot</th>
+                    <th>Props</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>#default</code></td>
+                    <td><code>{ item, index }</code></td>
+                    <td>Template for rendering each item</td>
+                  </tr>
+                  <tr>
+                    <td><code>#loading</code></td>
+                    <td><code>{ index }</code></td>
+                    <td>Template for rendering loading state</td>
                   </tr>
                 </tbody>
               </table>

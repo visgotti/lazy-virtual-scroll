@@ -1,2 +1,2 @@
-import LazyVirtualList from './LazyVirtualList';
-export { LazyVirtualList };
+export { default } from './LazyVirtualList';
+export type { VirtualListProps } from './LazyVirtualList';

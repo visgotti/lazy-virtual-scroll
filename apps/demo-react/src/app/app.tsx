@@ -1,51 +1,41 @@
 import React, { useState, useMemo } from 'react';
 import LazyVirtualScroll, { type Dataset, type LoadEventPayload } from '@lazy-virtual-scroll/react';
-import ScrollPropControls, { ScrollProps } from './ScrollPropControls';
+import { 
+  ScrollProps, 
+  defaultScrollProps
+} from '@lazy-virtual-scroll/core';
+import { 
+  MockDataItem,
+  loadDatasetWithDelay
+} from '@lazy-virtual-scroll/shared-mock';
+import ScrollPropControls from './ScrollPropControls';
 import './app.scss';
-
-function generateMockDatasets(totalItems: number, itemsPerDataset: number): Dataset[] {
-  const datasets: Dataset[] = [];
-
-  for (let i = 0; i < totalItems; i += itemsPerDataset) {
-    const data = Array.from({ length: itemsPerDataset }, (_, j) => ({ name: `Item ${i + j}`, isExpanded: false }));
-    datasets.push({
-      startingIndex: i,
-      data,
-    });
-  }
-  return datasets;
-}
 
 const App: React.FC = () => {
   const [scrollProps, setScrollProps] = useState<ScrollProps>({
-    itemSize: 65,
-    itemBuffer: 3,
     totalItems: 300,
-    scrollStart: 0,
-    scrollThrottle: 0,
-    scrollDebounce: 100,
-    minItemSize: 0,
-    autoDetectSizes: true,
-    direction: 'column',
-    sortDatasets: true
+    ...defaultScrollProps,
   });
-  
-  const [testLoadedCount] = useState(200);
   const [openItems, setOpenItems] = useState<{ [itemIndex: string]: number }>({});
+  const [loadedDatasets, setLoadedDatasets] = useState<Dataset[]>([]);
+  const [itemShowCounts, setItemShowCounts] = useState<{ [key: number]: number }>({});
+  const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
 
   const expandedItemHeight = 500;
 
-  const datasets = useMemo(() => generateMockDatasets(testLoadedCount, 10), [testLoadedCount]);
-
   const formattedDatasets = useMemo(() => {
-    return datasets.map((d: Dataset) => ({
+    return loadedDatasets.map((d: Dataset) => ({
       startingIndex: d.startingIndex,
-      data: d.data.map((item, i) => ({
-        ...item,
-        isExpanded: (d.startingIndex + i) in openItems,
-      })),
+      data: d.data.map((item, i) => {
+        const itemIndex = d.startingIndex + i;
+        return {
+          ...item as object,
+          isExpanded: itemIndex in openItems,
+          showCount: itemShowCounts[itemIndex] || 0,
+        };
+      }),
     }));
-  }, [datasets, openItems]);
+  }, [loadedDatasets, openItems, itemShowCounts]);
 
   const handleToggleExpand = (index: number) => {
     if(index in openItems) {
@@ -58,15 +48,79 @@ const App: React.FC = () => {
         [index]: expandedItemHeight
       });
     }
+  };  const handleLoad = (v: LoadEventPayload) => {
+    // When items need to be loaded, this callback fires
+    const startIndex = v.startIndex;
+    const endIndex = v.endIndex;
+    const itemCount = endIndex - startIndex + 1;
+    
+    // Update show counts for newly visible items
+    setItemShowCounts(prev => {
+      const newCounts = { ...prev };
+      for (let i = startIndex; i <= endIndex; i++) {
+        // Increment count if item was previously hidden or if it's the first time
+        if (hiddenItems.has(i) || !(i in newCounts)) {
+          newCounts[i] = (newCounts[i] || 0) + 1;
+        }
+      }
+      return newCounts;
+    });
+    
+    // Remove items from hidden set since they're now visible
+    setHiddenItems(prev => {
+      const newHidden = new Set(prev);
+      for (let i = startIndex; i <= endIndex; i++) {
+        newHidden.delete(i);
+      }
+      return newHidden;
+    });
+    
+    // Check if we already have this data loaded
+    const alreadyLoaded = loadedDatasets.some(dataset => 
+      dataset.startingIndex <= startIndex && 
+      (dataset.startingIndex + dataset.data.length) >= (startIndex + itemCount)
+    );
+    
+    if (alreadyLoaded) {
+      // Data is already loaded, no need to fetch again
+      return;
+    }
+    
+    // Simulate fetching data
+    loadDatasetWithDelay(startIndex, itemCount)
+      .then((loadedDataset) => {
+        // Add the loaded dataset
+        setLoadedDatasets(prev => [...prev, loadedDataset]);
+      })
+      .catch((error) => {
+        console.error('Failed to load dataset:', error);
+      });
   };
 
-  const handleLoad = (v: LoadEventPayload) => {
-    console.log('handleLoad', v);
+  const handleHide = (v: LoadEventPayload) => {
+    // When items go out of view, mark them as hidden
+    const startIndex = v.startIndex;
+    const endIndex = v.endIndex;
+    
+    setHiddenItems(prev => {
+      const newHidden = new Set(prev);
+      for (let i = startIndex; i <= endIndex; i++) {
+        newHidden.add(i);
+      }
+      return newHidden;
+    });
   };
 
-  const actualItemCount = useMemo(() => {
-    return formattedDatasets.reduce((acc, dataset) => acc + dataset.data.length, 0);
-  }, [formattedDatasets]);
+  // Compute unique loaded items count
+  const uniqueLoadedItemsCount = useMemo(() => {
+    const loadedIndexes = new Set<number>();
+    loadedDatasets.forEach(dataset => {
+      for (let i = 0; i < dataset.data.length; i++) {
+        loadedIndexes.add(dataset.startingIndex + i);
+      }
+    });
+    return loadedIndexes.size;
+  }, [loadedDatasets]);
 
   return (
     <div className="app-container">
@@ -83,37 +137,65 @@ const App: React.FC = () => {
         <ScrollPropControls scrollProps={scrollProps} onChange={setScrollProps} />
         
         <div className="demo-section">
-          <h1>Lazy Virtual List Example</h1>
+          <h1>Lazy Virtual List - React Example</h1>
           <p className="subtitle">Efficient rendering of large datasets with dynamic sizing and lazy loading</p>
           
-          <div className={`demo-container ${scrollProps.direction === 'row' ? 'horizontal' : ''}`}>
+          <div className="demo-container">
             <LazyVirtualScroll
               className="demo"
               onLoad={handleLoad}
+              onHide={handleHide}
               datasets={formattedDatasets}
               totalItems={scrollProps.totalItems}
-              itemSize={scrollProps.itemSize}
+              itemSize={65}
               itemBuffer={scrollProps.itemBuffer}
               autoDetectSizes={scrollProps.autoDetectSizes}
               dynamicSizes={openItems}
               scrollDebounce={scrollProps.scrollDebounce}
               scrollThrottle={scrollProps.scrollThrottle}
-              direction={scrollProps.direction}
               sortDatasets={scrollProps.sortDatasets}
               minItemSize={scrollProps.minItemSize}
               scrollStart={scrollProps.scrollStart}
               renderLoading={(index: number) => (
-                <div className="item loading">
-                  <div className="loading-content">
-                    <div className="loading-spinner"></div>
-                    <span>Loading item {index}...</span>
+                <div className="item">
+                  <div className="item-header">
+                    <div className="item-title">
+                      <div className="loading-content">
+                        <div className="loading-spinner"></div>
+                        <span>Loading item {index}...</span>
+                        <div className="loading-progress">
+                          <div className="progress-bar">
+                            <div 
+                              className="progress-fill"
+                              style={{
+                                width: '50%'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="item-actions">
+                      <button 
+                        className="expand-button" 
+                        style={{visibility: 'hidden'}}
+                      >
+                        <span>▼</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
-              render={(index: number, item: any) => (
+              render={(index: number, item: MockDataItem & { showCount: number }) => {
+                // Just render the regular item, loading is handled by renderLoading
+
+                return (
                 <div className={`item${(index in openItems) ? ' expanded' : ''}`}>
                   <div className="item-header">
-                    <div className="item-title">{item.name}</div>
+                    <div className="item-title">
+                      {item.name}
+                      <span className="show-count-badge">Shown: {item.showCount}x</span>
+                    </div>
                     <div className="item-actions">
                       <button 
                         className="expand-button" 
@@ -153,18 +235,19 @@ const App: React.FC = () => {
                     </div>
                   )}
                 </div>
-              )}
+                );
+              }}
             />
           </div>
           
           <div className="stats-panel">
             <div className="stat">
-              <div className="stat-value">{actualItemCount}</div>
-              <div className="stat-label">Loaded Items</div>
-            </div>
-            <div className="stat">
               <div className="stat-value">{Object.keys(openItems).length}</div>
               <div className="stat-label">Expanded Items</div>
+            </div>
+            <div className="stat">
+              <div className="stat-value">{uniqueLoadedItemsCount}</div>
+              <div className="stat-label">Loaded Items</div>
             </div>
             <div className="stat">
               <div className="stat-value">{scrollProps.totalItems}</div>

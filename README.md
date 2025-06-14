@@ -39,8 +39,31 @@ import LazyVirtualList from '@lazy-virtual-scroll/react';
   totalItems={10000}
   itemSize={50}
   data={items}
+  onLoad={({ startIndex, endIndex }) => {
+    console.log(`Loading items ${startIndex} to ${endIndex}`);
+  }}
+  onHide={({ startIndex, endIndex }) => {
+    console.log(`Hiding items ${startIndex} to ${endIndex}`);
+  }}
   render={(index, item) => (
-    <div>{item ? item.text : 'Loading...'}</div>
+    <div style={{
+      height: '50px',
+      padding: '10px',
+      borderBottom: '1px solid #eee',
+      boxSizing: 'border-box'
+    }}>
+      {item ? item.text : 'Loading...'}
+    </div>
+  )}
+  renderLoading={(index) => (
+    <div style={{
+      height: '50px', 
+      padding: '10px',
+      backgroundColor: '#f5f5f5',
+      boxSizing: 'border-box'
+    }}>
+      Loading item {index}...
+    </div>
   )}
 />
 ```
@@ -56,12 +79,32 @@ npm install @lazy-virtual-scroll/vue
   :totalItems="10000"
   :itemSize="50"
   :data="items"
+  @load="({ startIndex, endIndex }) => {
+    console.log(`Loading items ${startIndex} to ${endIndex}`);
+  }"
+  @hide="({ startIndex, endIndex }) => {
+    console.log(`Hiding items ${startIndex} to ${endIndex}`);
+  }"
 >
   <template #default="{ item, index }">
-    <div>{{ item.text }}</div>
+    <div style="
+      height: 50px;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      box-sizing: border-box;
+    ">
+      {{ item.text }}
+    </div>
   </template>
   <template #loading="{ index }">
-    <div>Loading...</div>
+    <div style="
+      height: 50px;
+      padding: 10px;
+      background-color: #f5f5f5;
+      box-sizing: border-box;
+    ">
+      Loading item {{ index }}...
+    </div>
   </template>
 </LazyVirtualList>
 ```

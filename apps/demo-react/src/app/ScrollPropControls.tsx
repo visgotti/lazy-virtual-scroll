@@ -1,32 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { ScrollProps, defaultScrollProps } from '@lazy-virtual-scroll/core';
 import './ScrollPropControls.scss';
-
-export interface ScrollProps {
-  itemSize: number;
-  itemBuffer: number;
-  totalItems: number;
-  scrollStart: number;
-  scrollThrottle: number;
-  scrollDebounce: number;
-  minItemSize: number;
-  autoDetectSizes: boolean;
-  direction: 'row' | 'column';
-  sortDatasets: boolean;
-}
-
-// Default values for the scroll props
-const defaultProps: ScrollProps = {
-  itemSize: 65,
-  itemBuffer: 3,
-  totalItems: 300,
-  scrollStart: 0,
-  scrollThrottle: 0,
-  scrollDebounce: 100,
-  minItemSize: 0,
-  autoDetectSizes: true,
-  direction: 'column',
-  sortDatasets: true
-};
 
 interface ScrollPropControlsProps {
   scrollProps: ScrollProps;
@@ -36,28 +10,31 @@ interface ScrollPropControlsProps {
 const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, onChange }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState('basic');
-  const [localProps, setLocalProps] = useState<ScrollProps>({ ...defaultProps, ...scrollProps });
+  const [localProps, setLocalProps] = useState<ScrollProps>({ ...defaultScrollProps, ...scrollProps });
 
   useEffect(() => {
     onChange(localProps);
   }, [localProps, onChange]);
 
   const handleChange = (key: keyof ScrollProps, value: any) => {
-    setLocalProps(prev => ({
+    setLocalProps((prev: ScrollProps) => ({
       ...prev,
       [key]: value
     }));
   };
 
   const toggleDirection = () => {
-    setLocalProps(prev => ({
+    setLocalProps((prev: ScrollProps) => ({
       ...prev,
       direction: prev.direction === 'column' ? 'row' : 'column'
     }));
   };
 
   const resetToDefaults = () => {
-    setLocalProps({ ...defaultProps });
+    setLocalProps({ 
+      totalItems: 300,
+      ...defaultScrollProps,
+    });
   };
 
   return (
@@ -65,7 +42,6 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
       <div className="header-row">
         <div className="header-left">
           <h3>Control Panel</h3>
-          <span className="badge">{localProps.direction === 'column' ? 'Vertical' : 'Horizontal'}</span>
           <span className="badge">{localProps.autoDetectSizes ? 'Dynamic Sizing' : 'Fixed Sizing'}</span>
         </div>
         <button className="toggle-button" onClick={() => setIsExpanded(!isExpanded)}>
@@ -98,25 +74,6 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
               <div className="control-grid">
                 <div className="control-item range">
                   <div className="control-header">
-                    <label htmlFor="itemSize">
-                      Item Size
-                      <span className="tooltip" data-tip="Default height/width of each item in pixels">ⓘ</span>
-                    </label>
-                    <span className="value">{localProps.itemSize}px</span>
-                  </div>
-                  <input
-                    id="itemSize"
-                    type="range"
-                    min="20"
-                    max="200"
-                    step="5"
-                    value={localProps.itemSize}
-                    onChange={(e) => handleChange('itemSize', parseInt(e.target.value))}
-                  />
-                </div>
-
-                <div className="control-item range">
-                  <div className="control-header">
                     <label htmlFor="totalItems">
                       Total Items
                       <span className="tooltip" data-tip="Total number of items to render in the list">ⓘ</span>
@@ -132,24 +89,6 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
                     value={localProps.totalItems}
                     onChange={(e) => handleChange('totalItems', parseInt(e.target.value))}
                   />
-                </div>
-
-                <div className="control-item">
-                  <label htmlFor="direction">
-                    Direction
-                    <span className="tooltip" data-tip="Orientation of the scroll (vertical or horizontal)">ⓘ</span>
-                  </label>
-                  <div className="toggle-switch">
-                    <input
-                      id="direction"
-                      type="checkbox"
-                      checked={localProps.direction === 'row'}
-                      onChange={toggleDirection}
-                    />
-                    <span className="slider"></span>
-                    <span className="label-left">Vertical</span>
-                    <span className="label-right">Horizontal</span>
-                  </div>
                 </div>
 
                 <div className="control-item">

@@ -46,14 +46,33 @@ const MyList = () => {
     <div style={{ height: '500px', width: '100%' }}>
       <LazyVirtualList
         totalItems={items.length}
-        itemSize={50}
+        itemSize={70}
         data={items}
         onLoad={({ startIndex, endIndex }) => {
           console.log(`Loading items from ${startIndex} to ${endIndex}`);
         }}
+        onHide={({ startIndex, endIndex }) => {
+          console.log(`Hiding items from ${startIndex} to ${endIndex}`);
+        }}
         render={(index, item) => (
-          <div style={{ height: '50px', padding: '10px', borderBottom: '1px solid #eee' }}>
-            {item ? item.text : 'Loading...'}
+          <div style={{ 
+            height: '50px', 
+            padding: '10px', 
+            borderBottom: '1px solid #eee',
+            boxSizing: 'border-box' // Ensures padding is included in height
+          }}>
+            {item.text}
+          </div>
+        )}
+        renderLoading={(index) => (
+          <div style={{ 
+            height: '50px', 
+            padding: '10px', 
+            borderBottom: '1px solid #eee', 
+            backgroundColor: '#f5f5f5',
+            boxSizing: 'border-box' // Ensures padding is included in height
+          }}>
+            Loading item {index}...
           </div>
         )}
       />
@@ -103,6 +122,10 @@ const AdvancedExample = () => {
           // You could fetch data here if needed
           console.log(`Visible range: ${startIndex} - ${endIndex}`);
         }}
+        onHide={({ startIndex, endIndex }) => {
+          // Clean up or unload data when items go out of view
+          console.log(`Hidden range: ${startIndex} - ${endIndex}`);
+        }}
         render={(index, item) => (
           <div 
             className={expandedItems[index] ? 'expanded-item' : 'item'}
@@ -131,6 +154,108 @@ const AdvancedExample = () => {
 };
 ```
 
+## Rendering
+
+### Item Rendering with `render`
+
+The `render` prop is a required function that determines how each item is displayed:
+
+```jsx
+<LazyVirtualList
+  // ...other props
+  render={(index, item) => (
+    <div className="list-item">
+      <h3>Item {index}</h3>
+      {item ? (
+        <p>{item.content}</p>
+      ) : (
+        <p>Data not loaded yet</p>
+      )}
+    </div>
+  )}
+/>
+```
+
+**Parameters:**
+- `index` (number): The index of the item in the list
+- `item` (any): The data item from your `data` array or `datasets`. Will be `undefined` if data hasn't been loaded yet.
+
+### Loading State with `renderLoading`
+
+The optional `renderLoading` prop lets you customize the loading state for items that haven't been loaded yet:
+
+```jsx
+<LazyVirtualList
+  // ...other props
+  renderLoading={(index) => (
+    <div className="loading-item">
+      <div className="spinner"></div>
+      <span>Loading item {index}...</span>
+    </div>
+  )}
+/>
+```
+
+**Parameters:**
+- `index` (number): The index of the loading item
+
+If `renderLoading` is not provided, the `render` function will be called with `item` as `undefined`.
+
+## Callbacks
+
+### `onLoad` Callback
+
+Called when new items become visible and need to be loaded:
+
+```jsx
+const handleLoad = ({ startIndex, endIndex }) => {
+  console.log(`Need to load items from ${startIndex} to ${endIndex}`);
+  
+  // Example: Fetch data for this range
+  fetchData(startIndex, endIndex).then(newData => {
+    setItems(prevItems => {
+      const updatedItems = [...prevItems];
+      newData.forEach((item, i) => {
+        updatedItems[startIndex + i] = item;
+      });
+      return updatedItems;
+    });
+  });
+};
+
+<LazyVirtualList onLoad={handleLoad} /* ...other props */ />
+```
+
+### `onHide` Callback
+
+Called when items go out of view:
+
+```jsx
+const handleHide = ({ startIndex, endIndex }) => {
+  console.log(`Items ${startIndex} to ${endIndex} are now hidden`);
+  
+  // Example: Clean up resources or mark items for garbage collection
+  cleanupItems(startIndex, endIndex);
+};
+
+<LazyVirtualList onHide={handleHide} /* ...other props */ />
+```
+
+### `onScroll` Callback
+
+Called when the user scrolls:
+
+```jsx
+const handleScroll = (scrollPosition) => {
+  console.log(`Current scroll position: ${scrollPosition}px`);
+  
+  // Example: Update URL or save scroll position
+  updateScrollPosition(scrollPosition);
+};
+
+<LazyVirtualList onScroll={handleScroll} /* ...other props */ />
+```
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -150,9 +275,88 @@ const AdvancedExample = () => {
 | `autoDetectSizes` | `boolean` | `false` | Automatically detect item sizes |
 | `minItemSize` | `number` | `0` | Minimum size for dynamically sized items |
 | `sortDatasets` | `boolean` | `true` | Automatically sort datasets by startingIndex |
-| `onLoad` | `(range: { startIndex: number; endIndex: number }) => void` | `undefined` | Callback when visible range changes |
-| `onScroll` | `(value: number) => void` | `undefined` | Callback on scroll |
+| `scrollOuterStyleOverrides` | `React.CSSProperties` | `{}` | Custom styles for the outer scroll container |
+| `scrollInnerStyleOverrides` | `React.CSSProperties` | `{}` | Custom styles for the inner scroll container |
 | `className` | `string` | `''` | Additional class name for the outer container |
+
+## Callbacks
+
+| Callback | Type | Description |
+|----------|------|-------------|
+| `onLoad` | `(range: { startIndex: number; endIndex: number }) => void` | Called when new items become visible and need to be loaded |
+| `onHide` | `(range: { startIndex: number; endIndex: number }) => void` | Called when items go out of view and are hidden |
+| `onScroll` | `(value: number) => void` | Called on scroll with current scroll position |
+
+## Callback Examples
+
+### Using onLoad and onHide for Data Management
+
+```jsx
+import React, { useState, useCallback } from 'react';
+import LazyVirtualList from '@lazy-virtual-scroll/react';
+
+const DataManagedList = () => {
+  const [loadedRanges, setLoadedRanges] = useState(new Set());
+  const [hiddenRanges, setHiddenRanges] = useState(new Set());
+  
+  const handleLoad = useCallback(({ startIndex, endIndex }) => {
+    console.log(`Loading items ${startIndex} to ${endIndex}`);
+    
+    // Track loaded ranges
+    const rangeKey = `${startIndex}-${endIndex}`;
+    setLoadedRanges(prev => new Set([...prev, rangeKey]));
+    
+    // Simulate async data loading
+    setTimeout(() => {
+      console.log(`Loaded items ${startIndex} to ${endIndex}`);
+    }, 100);
+  }, []);
+  
+  const handleHide = useCallback(({ startIndex, endIndex }) => {
+    console.log(`Hiding items ${startIndex} to ${endIndex}`);
+    
+    // Track hidden ranges for cleanup
+    const rangeKey = `${startIndex}-${endIndex}`;
+    setHiddenRanges(prev => new Set([...prev, rangeKey]));
+    
+    // Optional: Clean up data that's no longer visible
+    // This can help with memory management for large datasets
+  }, []);
+  
+  const handleScroll = useCallback((scrollPosition) => {
+    console.log(`Scrolled to position: ${scrollPosition}`);
+  }, []);
+  
+  return (
+    <LazyVirtualList
+      totalItems={100000}
+      itemSize={60}
+      onLoad={handleLoad}
+      onHide={handleHide}
+      onScroll={handleScroll}
+      render={(index, item) => (
+        <div style={{ 
+          height: '60px', 
+          padding: '10px',
+          boxSizing: 'border-box' // Ensures padding is included in height
+        }}>
+          Item {index} {item ? `- ${item.text}` : '(Loading...)'}
+        </div>
+      )}
+      renderLoading={(index) => (
+        <div style={{ 
+          height: '60px', 
+          padding: '10px', 
+          opacity: 0.6,
+          boxSizing: 'border-box' // Ensures padding is included in height
+        }}>
+          Loading item {index}...
+        </div>
+      )}
+    />
+  );
+};
+```
 
 ## Working with Fragmented Datasets
 

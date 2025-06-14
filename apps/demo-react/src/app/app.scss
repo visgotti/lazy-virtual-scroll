@@ -132,13 +132,33 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    min-height: 65px;
+    height: 65px;
+    max-height: 65px;
+    box-sizing: border-box;
   }
   
   .item-title {
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1e293b;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
   
+  .show-count-badge {
+    background: linear-gradient(to right, #10b981, #059669);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    min-width: fit-content;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
   .item-actions {
     display: flex;
     gap: 0.5rem;
@@ -283,9 +303,12 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
   color: #94a3b8;
   animation: pulse 1.5s infinite ease-in-out;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .loading-spinner {
@@ -295,4 +318,24 @@ body {
   border-top-color: #6366f1;
   border-radius: 50%;
   animation: spinner 0.8s linear infinite;
+}
+
+.loading-progress {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
+  transition: width 0.1s ease-out;
 }

@@ -6,7 +6,7 @@
       :style="scrollInnerStyleObject"
     >
       <template v-if="autoDetectSizes">
-        <div v-for="(item, index) in finalArray" :key="index" class="list-item" :ref="el => el && setItemRef(index, el as HTMLElement)">
+        <div v-for="(item, index) in finalArray" :key="index" :style="listItemStyleObject" class="list-item" :ref="el => el && setItemRef(index, el as HTMLElement)">
           <slot name="default" v-if="item" :item="item" :index="startIndex + index"></slot>
           <slot name="loading" v-else :index="startIndex + index"></slot>
         </div>
@@ -23,7 +23,7 @@
 </template>
 
 <script lang="ts" setup>
-import { resolveIndexes, fillItemArray, type Dataset } from '@core';
+import { resolveIndexes, utils, type Dataset } from '@core';
 import { computed, ref, watch, defineProps, defineEmits, onMounted, onUnmounted, nextTick, toRefs } from 'vue';
 import type { PropType, Ref } from 'vue';
 import { useDebounceFn } from './useDebounceFn';
@@ -37,7 +37,18 @@ const endIndex = ref(0);
 const scrollOuter: Ref<HTMLDivElement> = ref<HTMLDivElement>() as Ref<HTMLDivElement>;
 const scrollInner: Ref<HTMLDivElement> = ref<HTMLDivElement>() as Ref<HTMLDivElement>;
 
+// Track previous range for onHide callback
+const prevRangeRef = ref<{ startIndex: number; endIndex: number } | null>(null);
+
 const props = defineProps({
+  totalItems: {
+    type: Number,
+    required: true,
+  },
+  itemSize: {
+    type: Number,
+    required: true,
+  },
   scrollStart: {
     type: Number,
     default: 0,
@@ -70,14 +81,6 @@ const props = defineProps({
     type: Number,
     default: 3,
   },
-  totalItems: {
-    type: Number,
-    required: true,
-  },
-  itemSize: {
-    type: Number,
-    required: true,
-  },
   minItemSize: {
     type: Number,
     default: 0
@@ -90,18 +93,22 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  outerMaxLengthProp: {
+  outerMaxLengthCssValue: {
     type: String,
     default: '100%'
   },
-  outerMinLengthProp: {
+  outerMinLengthCssValue: {
     type: String,
     default: '100%'
   },
-  outerLengthProp: {
+  outerLengthCssValue: {
     type: String,
     default: '100%'
   },
+  listItemStyle: {
+    type: Object as PropType<{ [key: string]: string }>,
+    default: () => ({}),
+  }
 });
 
 
@@ -136,7 +143,6 @@ watch([dynamicSizesRef, totalItems], () => {
   handleScroll();
 }, { deep: true });
 
-
 const orderedDatasets = computed(() => {
   const datasetsEnsured = datasets?.value 
     ? datasets.value
@@ -152,7 +158,7 @@ const orderedDatasets = computed(() => {
 });
 
 const finalArray = computed(() => {
-  return fillItemArray({
+  return utils.fillAndFlattenDatasets({
     orderedDatasets: orderedDatasets.value,
     startIndex: startIndex.value,
     endIndex: endIndex.value,
@@ -171,9 +177,35 @@ const handleScroll = (e?: any) => {
   totalLength.value = resolved.totalItemHeight;
   scrollMargin.value = scrollOuter.value[scrollProp.value] - resolved.scrollTopPadding;
   scrollLength.value = totalLength.value - scrollMargin.value;
+  
   if (resolved.startIndex !== startIndex.value || resolved.endIndex !== endIndex.value) {
+    const prevRange = prevRangeRef.value;
+    
+    // Calculate hidden ranges when items go out of view
+    if (prevRange !== null) {
+      // Items hidden at the beginning (scrolled down past them)
+      if (resolved.startIndex > prevRange.startIndex) {
+        const hiddenStartIndex = prevRange.startIndex;
+        const hiddenEndIndex = Math.min(prevRange.endIndex, resolved.startIndex - 1);
+        if (hiddenEndIndex >= hiddenStartIndex) {
+          emit('hide', { startIndex: hiddenStartIndex, endIndex: hiddenEndIndex });
+        }
+      }
+      
+      // Items hidden at the end (scrolled up past them)
+      if (resolved.endIndex < prevRange.endIndex) {
+        const hiddenStartIndex = Math.max(prevRange.startIndex, resolved.endIndex + 1);
+        const hiddenEndIndex = prevRange.endIndex;
+        if (hiddenEndIndex >= hiddenStartIndex) {
+          emit('hide', { startIndex: hiddenStartIndex, endIndex: hiddenEndIndex });
+        }
+      }
+    }
+    
     startIndex.value = resolved.startIndex;
     endIndex.value = resolved.endIndex;
+    prevRangeRef.value = { startIndex: resolved.startIndex, endIndex: resolved.endIndex };
+    
     emit('load', {
       startIndex: startIndex.value,
       endIndex: endIndex.value,
@@ -184,6 +216,7 @@ const handleScroll = (e?: any) => {
 const emit = defineEmits<{
   (e: 'scroll', value: number): void;
   (e: 'load', value: { startIndex: number; endIndex: number }): void;
+  (e: 'hide', value: { startIndex: number; endIndex: number }): void;
 }>();
 
 
@@ -233,18 +266,22 @@ const scrollOuterStyleObject = computed(() => {
     'min-width'?: string,
     'min-height'?: string,
   } = {};
-  if(props.outerLengthProp) {
-    obj[lengthProp.value] = props.outerLengthProp;
+  if(props.outerLengthCssValue) {
+    obj[lengthProp.value] = props.outerLengthCssValue;
   }
-  if(props.outerMinLengthProp) {
-    obj[`min-${lengthProp.value}`] = props.outerMinLengthProp;
+  if(props.outerMinLengthCssValue) {
+    obj[`min-${lengthProp.value}`] = props.outerMinLengthCssValue;
   }
-  if(props.outerMaxLengthProp) {
-    obj[`max-${lengthProp.value}`] = props.outerMaxLengthProp;
+  if(props.outerMaxLengthCssValue) {
+    obj[`max-${lengthProp.value}`] = props.outerMaxLengthCssValue;
   }
-  return obj
+  return utils.scrollOuterStyle(lengthProp.value, obj);
 });
 
+const listItemStyleObject = computed(() => ({
+  display: 'inline-block',
+  ...(props.listItemStyle || {}),
+}))
 
 const lastTotalItems = ref(0);
 watch(props, () => {
@@ -255,13 +292,7 @@ watch(props, () => {
 }, { deep: true });
 
 const scrollInnerStyleObject = computed(() => {
-  return {
-    ['flex-direction']: direction.value,
-    [lengthProp.value]: `${scrollLength.value}px`,
-    [`max-${lengthProp.value}`]: `${scrollLength.value}px`,
-    [`min-${lengthProp.value}`]: `${scrollLength.value}px`,
-    [`${marginProp.value}`]: `${scrollMargin.value}px`,
-  }
+  return utils.scrollInnerStyle(scrollLength.value, scrollMargin.value, direction.value)
 });
 const resizeObservers: {[index: string]: { el: HTMLElement, observer: ResizeObserver } } = {}
 
@@ -322,16 +353,3 @@ const setItemRef = (index: number, el: HTMLElement) => {
 };
 </script>
 
-<style lang="scss">
-.scroll-outer {
-  display: inline-block;
-  overflow: auto;
-}
-.scroll-inner {
-  overflow: hidden;
-  display: flex;
-}
-.list-item {
-  display: inline-block;
-}
-</style>

@@ -1,3 +1,4 @@
 export * from './calcs';
 export * from './types';
-export * from './utils';
+import * as utils from './utils/index';
+export { utils }

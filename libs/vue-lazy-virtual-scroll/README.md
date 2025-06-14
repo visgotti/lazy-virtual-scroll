@@ -52,6 +52,7 @@ pnpm add @lazy-virtual-scroll/vue
       :itemSize="50"
       :data="items"
       @load="handleLoad"
+      @hide="handleHide"
     >
       <template #default="{ item, index }">
         <div class="item">
@@ -76,8 +77,47 @@ const items = ref(Array.from({ length: 10000 }, (_, i) => ({
   text: `Item ${i}` 
 })));
 
+## Basic Usage
+
+```vue
+<template>
+  <div style="height: 500px; width: 100%">
+    <LazyVirtualList
+      :totalItems="items.length"
+      :itemSize="50"
+      :data="items"
+      @load="handleLoad"
+      @hide="handleHide"
+    >
+      <template #default="{ item, index }">
+        <div class="item">
+          {{ item ? item.text : 'Loading...' }}
+        </div>
+      </template>
+      <template #loading="{ index }">
+        <div class="item loading">
+          Loading item {{ index }}...
+        </div>
+      </template>
+    </LazyVirtualList>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import LazyVirtualList from '@lazy-virtual-scroll/vue';
+
+const items = ref(Array.from({ length: 10000 }, (_, i) => ({ 
+  id: i, 
+  text: `Item ${i}` 
+})));
+
 const handleLoad = ({ startIndex, endIndex }) => {
   console.log(`Loading items from ${startIndex} to ${endIndex}`);
+};
+
+const handleHide = ({ startIndex, endIndex }) => {
+  console.log(`Hiding items from ${startIndex} to ${endIndex}`);
 };
 </script>
 
@@ -86,6 +126,7 @@ const handleLoad = ({ startIndex, endIndex }) => {
   height: 50px;
   padding: 10px;
   border-bottom: 1px solid #eee;
+  box-sizing: border-box; /* Ensures padding is included in height */
 }
 .item.loading {
   background-color: #f5f5f5;
@@ -93,6 +134,127 @@ const handleLoad = ({ startIndex, endIndex }) => {
 }
 </style>
 ```
+
+## Slots
+
+### Default Slot (`#default`)
+
+The default slot is used to render each item in the list:
+
+```vue
+<LazyVirtualList :totalItems="1000" :itemSize="60">
+  <template #default="{ item, index }">
+    <div class="list-item">
+      <h3>Item {{ index }}</h3>
+      <p>{{ item.content }}</p>
+    </div>
+  </template>
+</LazyVirtualList>
+```
+
+**Slot Props:**
+- `item` (any): The data item from your `data` array or `datasets`. Will be `undefined` if data hasn't been loaded yet.
+- `index` (number): The index of the item in the list
+
+### Loading Slot (`#loading`)
+
+The loading slot is used to render items that are still loading:
+
+```vue
+<LazyVirtualList :totalItems="1000" :itemSize="60">
+  <template #default="{ item, index }">
+    <!-- Regular item content -->
+    <div class="list-item">{{ item.content }}</div>
+  </template>
+  
+  <template #loading="{ index }">
+    <div class="loading-item">
+      <div class="spinner"></div>
+      <span>Loading item {{ index }}...</span>
+    </div>
+  </template>
+</LazyVirtualList>
+```
+
+**Slot Props:**
+- `index` (number): The index of the loading item
+
+If the `#loading` slot is not provided, the `#default` slot will be used with `item` as `undefined`.
+
+## Events
+
+### `@load` Event
+
+Emitted when new items become visible and need to be loaded:
+
+```vue
+<template>
+  <LazyVirtualList @load="handleLoad" />
+</template>
+
+<script setup>
+const handleLoad = ({ startIndex, endIndex }) => {
+  console.log(`Need to load items from ${startIndex} to ${endIndex}`);
+  
+  // Example: Fetch data for this range
+  fetchData(startIndex, endIndex).then(newData => {
+    // Update your reactive data
+    newData.forEach((item, i) => {
+      items.value[startIndex + i] = item;
+    });
+  });
+};
+</script>
+```
+
+**Payload:**
+- `startIndex` (number): First index that needs to be loaded
+- `endIndex` (number): Last index that needs to be loaded
+
+### `@hide` Event
+
+Emitted when items go out of view:
+
+```vue
+<template>
+  <LazyVirtualList @hide="handleHide" />
+</template>
+
+<script setup>
+const handleHide = ({ startIndex, endIndex }) => {
+  console.log(`Items ${startIndex} to ${endIndex} are now hidden`);
+  
+  // Example: Clean up resources or mark items for garbage collection
+  cleanupItems(startIndex, endIndex);
+};
+</script>
+```
+
+**Payload:**
+- `startIndex` (number): First index that is now hidden
+- `endIndex` (number): Last index that is now hidden
+
+### `@scroll` Event
+
+Emitted when the user scrolls:
+
+```vue
+<template>
+  <LazyVirtualList @scroll="handleScroll" />
+</template>
+
+<script setup>
+const handleScroll = (scrollPosition) => {
+  console.log(`Current scroll position: ${scrollPosition}px`);
+  
+  // Example: Update URL or save scroll position
+  updateScrollPosition(scrollPosition);
+};
+</script>
+```
+
+**Payload:**
+- `scrollPosition` (number): Current scroll position in pixels
 
 ## Advanced Example
 
@@ -108,6 +270,7 @@ const handleLoad = ({ startIndex, endIndex }) => {
       :scrollDebounce="100"
       direction="column"
       @load="handleLoad"
+      @hide="handleHide"
     >
       <template #default="{ item, index }">
         <div 
@@ -164,6 +327,10 @@ const toggleExpand = (index) => {
 const handleLoad = ({ startIndex, endIndex }) => {
   console.log(`Visible range: ${startIndex} - ${endIndex}`);
 };
+
+const handleHide = ({ startIndex, endIndex }) => {
+  console.log(`Hidden range: ${startIndex} - ${endIndex}`);
+};
 </script>
 
 <style>
@@ -171,6 +338,7 @@ const handleLoad = ({ startIndex, endIndex }) => {
   padding: 10px;
   min-height: 50px;
   border-bottom: 1px solid #eee;
+  box-sizing: border-box; /* Ensures padding is included in height */
 }
 .item.expanded {
   background-color: #f0f8ff;
@@ -208,16 +376,18 @@ const handleLoad = ({ startIndex, endIndex }) => {
 | `autoDetectSizes` | `boolean` | `false` | Automatically detect item sizes |
 | `minItemSize` | `number` | `0` | Minimum size for dynamically sized items |
 | `sortDatasets` | `boolean` | `true` | Automatically sort datasets by startingIndex |
-| `outerMaxLengthProp` | `string` | `'100%'` | Maximum length of the outer container |
-| `outerMinLengthProp` | `string` | `'100%'` | Minimum length of the outer container |
-| `outerLengthProp` | `string` | `'100%'` | Length of the outer container |
+| `outerMaxLengthCssValue` | `string` | `'100%'` | Maximum length CSS value for the outer container |
+| `outerMinLengthCssValue` | `string` | `'100%'` | Minimum length CSS value for the outer container |
+| `outerLengthCssValue` | `string` | `'100%'` | Length CSS value for the outer container |
+| `listItemStyle` | `{ [key: string]: string }` | `{}` | Custom styles for list items |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `load` | `{ startIndex: number; endIndex: number }` | Emitted when visible range changes |
-| `scroll` | `number` | Emitted on scroll with current scroll position |
+| `@load` | `{ startIndex: number; endIndex: number }` | Emitted when new items become visible and need to be loaded |
+| `@hide` | `{ startIndex: number; endIndex: number }` | Emitted when items go out of view and are hidden |
+| `@scroll` | `number` | Emitted on scroll with current scroll position |
 
 ## Slots
 
@@ -225,6 +395,83 @@ const handleLoad = ({ startIndex, endIndex }) => {
 |------|-------|-------------|
 | `default` | `{ item: any, index: number }` | Template for rendering each item |
 | `loading` | `{ index: number }` | Template for rendering loading state |
+
+## Event Examples
+
+### Using @load and @hide for Data Management
+
+```vue
+<template>
+  <div style="height: 500px; width: 100%">
+    <LazyVirtualList
+      :totalItems="100000"
+      :itemSize="60"
+      @load="handleLoad"
+      @hide="handleHide"
+      @scroll="handleScroll"
+    >
+      <template #default="{ item, index }">
+        <div class="item">
+          Item {{ index }} {{ item ? `- ${item.text}` : '(Loading...)' }}
+        </div>
+      </template>
+      <template #loading="{ index }">
+        <div class="item loading">
+          Loading item {{ index }}...
+        </div>
+      </template>
+    </LazyVirtualList>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import LazyVirtualList from '@lazy-virtual-scroll/vue';
+
+const loadedRanges = ref(new Set());
+const hiddenRanges = ref(new Set());
+
+const handleLoad = ({ startIndex, endIndex }) => {
+  console.log(`Loading items ${startIndex} to ${endIndex}`);
+  
+  // Track loaded ranges
+  const rangeKey = `${startIndex}-${endIndex}`;
+  loadedRanges.value.add(rangeKey);
+  
+  // Simulate async data loading
+  setTimeout(() => {
+    console.log(`Loaded items ${startIndex} to ${endIndex}`);
+  }, 100);
+};
+
+const handleHide = ({ startIndex, endIndex }) => {
+  console.log(`Hiding items ${startIndex} to ${endIndex}`);
+  
+  // Track hidden ranges for cleanup
+  const rangeKey = `${startIndex}-${endIndex}`;
+  hiddenRanges.value.add(rangeKey);
+  
+  // Optional: Clean up data that's no longer visible
+  // This can help with memory management for large datasets
+};
+
+const handleScroll = (scrollPosition) => {
+  console.log(`Scrolled to position: ${scrollPosition}`);
+};
+</script>
+
+<style>
+.item {
+  height: 60px;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  box-sizing: border-box; /* Ensures padding is included in height */
+}
+.item.loading {
+  opacity: 0.6;
+}
+</style>
+```
 
 ## Working with Fragmented Datasets
 
@@ -300,6 +547,79 @@ For optimal performance with large lists:
    <template #default="{ item, index }">
      <div v-memo="[item.id, item.text]" class="item">
        {{ item.text }}
+     </div>
+   </template>
+   ```
+
+## Dynamic Sizing
+
+The component supports dynamic item sizes in two ways:
+
+1. **Manual Size Specification**:
+   ```vue
+   <script setup>
+   const dynamicSizes = ref({
+     5: 100,  // Item at index 5 has height 100px
+     10: 200, // Item at index 10 has height 200px
+   });
+   </script>
+   
+   <template>
+     <LazyVirtualList
+       :dynamicSizes="dynamicSizes"
+       <!-- ...other props -->
+     />
+   </template>
+   ```
+
+2. **Automatic Size Detection**:
+   ```vue
+   <LazyVirtualList
+     :autoDetectSizes="true"
+     <!-- ...other props -->
+   />
+   ```
+
+## Performance Optimization
+
+For optimal performance with large lists:
+
+1. Use both `scrollThrottle` and `scrollDebounce` to limit scroll event processing:
+   ```vue
+   <LazyVirtualList
+     :scrollThrottle="16"
+     :scrollDebounce="100"
+     <!-- ...other props -->
+   />
+   ```
+
+2. Use `v-memo` for complex items to prevent unnecessary re-renders:
+   ```vue
+   <LazyVirtualList>
+     <template #default="{ item, index }">
+       <div v-memo="[item?.id, item?.updatedAt]" class="complex-item">
+         <!-- Complex item content -->
+         {{ item?.content }}
+       </div>
+     </template>
+   </LazyVirtualList>
+   ```
+
+3. Keep item templates simple and avoid heavy computations in templates:
+   ```vue
+   <!-- Good: Simple, reactive data -->
+   <template #default="{ item, index }">
+     <div class="item">
+       <h3>{{ item.title }}</h3>
+       <p>{{ item.description }}</p>
+     </div>
+   </template>
+   
+   <!-- Avoid: Heavy computations in templates -->
+   <template #default="{ item, index }">
+     <div class="item">
+       <!-- This will run on every render -->
+       <h3>{{ processComplexTitle(item.rawData) }}</h3>
      </div>
    </template>
    ```

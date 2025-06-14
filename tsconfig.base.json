@@ -16,8 +16,13 @@
     "baseUrl": ".",
     "paths": {
       "@core": ["libs/core/src/index.ts"],
-      "@lazy-virtual-scroll/react": ["libs/react-lazy-virtual-scroll/src/index.ts"],
+      "@lazy-virtual-scroll/core": ["libs/core/src/index.ts"],
+      "@lazy-virtual-scroll/react": [
+        "libs/react-lazy-virtual-scroll/src/index.ts"
+      ],
       "@lazy-virtual-scroll/vue": ["libs/vue-lazy-virtual-scroll/src/index.ts"],
+      "@lazy-virtual-scroll/shared-mock": ["libs/shared-mock/src/index.ts"],
+      "shared-mock": ["libs/shared-mock/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

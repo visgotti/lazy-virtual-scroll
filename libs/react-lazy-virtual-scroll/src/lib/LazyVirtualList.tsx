@@ -1,48 +1,39 @@
 import React, { ReactNode, useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { resolveIndexes, fillItemArray, type Dataset } from '@core';
+import { resolveIndexes, utils, type Dataset, type ScrollProps } from '@core';
 import { useDebounceFn } from './useDebounceFn';
 import { useThrottle } from './useThrottle';
 
-interface VirtualListProps {
+export interface VirtualListProps<T=unknown> extends ScrollProps<T, React.CSSProperties> {
   className?: string;
-  scrollStart?: number;
-  scrollThrottle?: number;
-  scrollDebounce?: number;
-  direction?: 'row' | 'column';
-  sortDatasets?: boolean;
-  data?: any[];
-  datasets?: Dataset[];
-  itemBuffer?: number;
-  totalItems: number;
-  itemSize: number;
-  minItemSize?: number;
-  dynamicSizes?: { [itemIndex: string]: number };
-  autoDetectSizes?: boolean;
   onLoad?: (range: { startIndex: number; endIndex: number }) => void;
+  onHide?: (range: { startIndex: number; endIndex: number }) => void;
   onScroll?: (value: number) => void;
-  render: (index: number, datum: any) => ReactNode,
-  renderLoading?: (index: number) => ReactNode,
+  render: (index: number, datum: any) => ReactNode;
+  renderLoading?: (index: number) => ReactNode;
 }
 
 const LazyVirtualList: React.FC<VirtualListProps> = ({
   className,
+  itemSize,
+  totalItems,
   scrollStart = 0,
   scrollThrottle = 0,
   scrollDebounce = 0,
   direction = 'column',
   sortDatasets = true,
+  minItemSize = 0,
+  autoDetectSizes = false,
+  itemBuffer = 3,
+  dynamicSizes = {},
   data,
   datasets,
-  itemBuffer = 3,
-  totalItems,
-  itemSize,
-  minItemSize = 0,
-  dynamicSizes = {},
-  autoDetectSizes = false,
   onLoad,
+  onHide,
   onScroll,
   render,
-  renderLoading
+  renderLoading,
+  scrollOuterStyleOverrides = {},
+  scrollInnerStyleOverrides = {},
 }: VirtualListProps) => {
   const scrollOuterRef = useRef<HTMLElement | null>(null);
   const scrollInnerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +43,9 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
   const [scrollLength, setScrollLength] = useState(0);
   const [scrollMargin, setScrollMargin] = useState(0);
   const [internalDynamicSizes, setInternalDynamicSizes] = useState<{ [key: number]: number }>({});
+
+  // Track previous range for onHide callback
+  const prevRangeRef = useRef<{ startIndex: number; endIndex: number } | null>(null);
 
   // Use refs to avoid stale closures
   const internalDynamicSizesRef = useRef(internalDynamicSizes);
@@ -98,7 +92,7 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
   }, [datasets, data, shouldSortDatasets]);
 
   const finalArray = useMemo(() => {
-    return fillItemArray({
+    return utils.fillAndFlattenDatasets({
       orderedDatasets,
       startIndex,
       endIndex,
@@ -123,13 +117,39 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
     setScrollLength(resolved.totalItemHeight - nextScrollMargin);
 
     if (resolved.startIndex !== startIndex || resolved.endIndex !== endIndex) {
+      const prevRange = prevRangeRef.current;
+      
+      // Calculate hidden ranges when items go out of view
+      if (onHide && (prevRange !== null)) {
+        // Items hidden at the beginning (scrolled down past them)
+        if (resolved.startIndex > prevRange.startIndex) {
+          const hiddenStartIndex = prevRange.startIndex;
+          const hiddenEndIndex = Math.min(prevRange.endIndex, resolved.startIndex - 1);
+          if (hiddenEndIndex >= hiddenStartIndex) {
+            onHide({ startIndex: hiddenStartIndex, endIndex: hiddenEndIndex });
+          }
+        }
+        
+        // Items hidden at the end (scrolled up past them)
+        if (resolved.endIndex < prevRange.endIndex) {
+          const hiddenStartIndex = Math.max(prevRange.startIndex, resolved.endIndex + 1);
+          const hiddenEndIndex = prevRange.endIndex;
+          if (hiddenEndIndex >= hiddenStartIndex) {
+            onHide({ startIndex: hiddenStartIndex, endIndex: hiddenEndIndex });
+          }
+        }
+      }
+      
+      // Update state and refs
       setStartIndex(resolved.startIndex);
       setEndIndex(resolved.endIndex);
+      prevRangeRef.current = { startIndex: resolved.startIndex, endIndex: resolved.endIndex };
+      
       if (onLoad) {
         onLoad({ startIndex: resolved.startIndex, endIndex: resolved.endIndex });
       }
     }
-  }, [scrollProp, clientLengthProp, itemSize, totalItems, itemBuffer, startIndex, endIndex, onLoad]);
+  }, [scrollProp, clientLengthProp, itemSize, totalItems, itemBuffer, startIndex, endIndex, onLoad, onHide]);
 
   // Effect to trigger handleScroll when dynamic sizes change - but debounced
   const debouncedHandleScrollForSizes = useDebounceFn(handleScroll, 16); // ~60fps
@@ -246,42 +266,27 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
     });
   }, [startIndex, endIndex]);
 
-  const capitalize = (v: string) => {
-    return v.at(0)?.toUpperCase() + v.slice(1)
-  }
-
   const outerClassName = useMemo(() => {
     return (`scroll-outer ${className || ''}`).trim()
   }, [className])
 
-  const outerStyle = useMemo(() => {
+  const scrollOuterStyleObject = useMemo(() => {
     return { 
-      display: 'inline-block',
-      overflow: 'auto',
-      [`max${capitalize(lengthProp)}`]: '100%', 
-      [`min${capitalize(lengthProp)}`]: '100%' 
+      ...utils.scrollOuterStyle(lengthProp, scrollOuterStyleOverrides)
     };
-  }, [lengthProp]);
+  }, [lengthProp, scrollOuterStyleOverrides]);
 
-  const innerStyle = useMemo(() => {
-    return { 
-      display: 'flex',
-      overflow: 'hidden',
-      ['flexDirection']: direction, 
-      [lengthProp]: `${scrollLength}px`,
-      [`max${capitalize(lengthProp)}`]: `${scrollLength}px`, 
-      [`min${capitalize(lengthProp)}`]: `${scrollLength}px`, 
-      [`${marginProp}`]: `${scrollMargin}px`
-     }
-  }, [direction, lengthProp, scrollLength, scrollMargin, marginProp]);
+  const scrollInnerStyleObject = useMemo(() => {
+    return utils.scrollInnerStyle(scrollLength, scrollMargin, direction, scrollInnerStyleOverrides)
+  }, [direction, scrollLength, scrollMargin, scrollInnerStyleOverrides]);
   
   const listItemStyle = {
     display: 'inline-block'
   }
 
   return (
-    <div className={outerClassName} ref={handleScrollOuterRef} style={outerStyle}>
-      <div className="scroll-inner" ref={scrollInnerRef} style={innerStyle}>
+    <div className={outerClassName} ref={handleScrollOuterRef} style={scrollOuterStyleObject}>
+      <div className="scroll-inner" ref={scrollInnerRef} style={scrollInnerStyleObject}>
         {finalArray.map((item, index) => (
           <div
             key={index}

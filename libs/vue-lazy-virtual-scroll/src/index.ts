@@ -1,3 +1,3 @@
-import LazyVirtualList from './LazyVirtualList.vue';
+import LazyVirtualScroll from './LazyVirtualScroll.vue';
 export type { Dataset, LoadEventPayload, ScrollProps } from '@core';
-export default LazyVirtualList;
+export default LazyVirtualScroll;

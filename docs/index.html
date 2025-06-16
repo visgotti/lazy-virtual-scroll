@@ -283,7 +283,7 @@
           <div class="tab-pane fade show active" id="react" role="tabpanel">
             <p class="install-cmd">npm install @lazy-virtual-scroll/react</p>
             <div class="code-block">
-              <pre><code>import LazyVirtualList from '@lazy-virtual-scroll/react';
+              <pre><code>import LazyVirtualScroll from '@lazy-virtual-scroll/react';
 
 const App = () => {
   const items = Array.from({ length: 10000 }, (_, i) => ({
@@ -293,7 +293,7 @@ const App = () => {
 
   return (
     &lt;div style={{ height: '500px', width: '100%' }}>
-      &lt;LazyVirtualList
+      &lt;LazyVirtualScroll
         totalItems={items.length}
         itemSize={60}
         data={items}
@@ -331,7 +331,7 @@ const App = () => {
             <div class="code-block">
               <pre><code>&lt;template>
   &lt;div style="height: 500px; width: 100%">
-    &lt;LazyVirtualList
+    &lt;LazyVirtualScroll
       :totalItems="items.length"
       :itemSize="60"
       :data="items"
@@ -358,12 +358,12 @@ const App = () => {
           Loading item {{ index }}...
         &lt;/div>
       &lt;/template>
-    &lt;/LazyVirtualList>
+    &lt;/LazyVirtualScroll>
   &lt;/div>
 &lt;/template>
 
 &lt;script setup>
-import LazyVirtualList from '@lazy-virtual-scroll/vue';
+import LazyVirtualScroll from '@lazy-virtual-scroll/vue';
 
 const items = Array.from({ length: 10000 }, (_, i) => ({
   id: i,
@@ -453,7 +453,7 @@ const handleHide = ({ startIndex, endIndex }) => {
         <div class="tab-content" id="docTabsContent">
           <div class="tab-pane fade show active" id="react-doc" role="tabpanel">
             <div class="p-4">
-              <h4>React LazyVirtualList Props</h4>
+              <h4>React LazyVirtualScroll Props</h4>
               <table class="table table-striped">
                 <thead>
                   <tr>
@@ -531,7 +531,7 @@ const handleHide = ({ startIndex, endIndex }) => {
           </div>
           <div class="tab-pane fade" id="vue-doc" role="tabpanel">
             <div class="p-4">
-              <h4>Vue LazyVirtualList Props & Events</h4>
+              <h4>Vue LazyVirtualScroll Props & Events</h4>
               <table class="table table-striped">
                 <thead>
                   <tr>

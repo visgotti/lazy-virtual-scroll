@@ -3,7 +3,7 @@ import { resolveIndexes, utils, type Dataset, type ScrollProps } from '@core';
 import { useDebounceFn } from './useDebounceFn';
 import { useThrottle } from './useThrottle';
 
-export interface VirtualListProps<T=unknown> extends ScrollProps<T, React.CSSProperties> {
+export interface VirtualLazyScrollProps<T=unknown> extends ScrollProps<T, React.CSSProperties> {
   className?: string;
   onLoad?: (range: { startIndex: number; endIndex: number }) => void;
   onHide?: (range: { startIndex: number; endIndex: number }) => void;
@@ -12,7 +12,7 @@ export interface VirtualListProps<T=unknown> extends ScrollProps<T, React.CSSPro
   renderLoading?: (index: number) => ReactNode;
 }
 
-const LazyVirtualList: React.FC<VirtualListProps> = ({
+const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
   className,
   itemSize,
   totalItems,
@@ -34,7 +34,7 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
   renderLoading,
   scrollOuterStyleOverrides = {},
   scrollInnerStyleOverrides = {},
-}: VirtualListProps) => {
+}: VirtualLazyScrollProps) => {
   const scrollOuterRef = useRef<HTMLElement | null>(null);
   const scrollInnerRef = useRef<HTMLDivElement>(null);
   const [startIndex, setStartIndex] = useState(0);
@@ -157,8 +157,16 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
     debouncedHandleScrollForSizes();
   }, [debouncedHandleScrollForSizes, totalItems]);
 
-  const throttledScroll = scrollThrottle ? useThrottle(handleScroll, scrollThrottle, scrollDebounce || scrollThrottle) : handleScroll;
-  const debouncedScroll = scrollDebounce ? useDebounceFn(handleScroll, scrollDebounce) : throttledScroll;
+  // Call hooks unconditionally
+  const throttledScrollFn = useThrottle(handleScroll, scrollThrottle || 0, scrollDebounce || scrollThrottle || 0);
+  const debouncedScrollFn = useDebounceFn(handleScroll, scrollDebounce || 0);
+
+  // Then conditionally use the results
+  const debouncedScroll = scrollDebounce 
+    ? debouncedScrollFn 
+    : scrollThrottle 
+      ? throttledScrollFn 
+      : handleScroll;
 
   useEffect(() => {
     window.addEventListener('scroll', debouncedScroll);
@@ -306,4 +314,4 @@ const LazyVirtualList: React.FC<VirtualListProps> = ({
   );
 };
 
-export default LazyVirtualList;
+export default LazyVirtualScroll;

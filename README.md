@@ -33,9 +33,9 @@ npm install @lazy-virtual-scroll/react
 ```
 
 ```jsx
-import LazyVirtualList from '@lazy-virtual-scroll/react';
+import LazyVirtualScroll from '@lazy-virtual-scroll/react';
 
-<LazyVirtualList
+<LazyVirtualScroll
   totalItems={10000}
   itemSize={50}
   data={items}
@@ -75,7 +75,7 @@ npm install @lazy-virtual-scroll/vue
 ```
 
 ```vue
-<LazyVirtualList
+<LazyVirtualScroll
   :totalItems="10000"
   :itemSize="50"
   :data="items"
@@ -106,7 +106,7 @@ npm install @lazy-virtual-scroll/vue
       Loading item {{ index }}...
     </div>
   </template>
-</LazyVirtualList>
+</LazyVirtualScroll>
 ```
 
 ## Documentation

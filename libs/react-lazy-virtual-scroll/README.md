@@ -34,7 +34,7 @@ pnpm add @lazy-virtual-scroll/react
 
 ```jsx
 import React, { useState } from 'react';
-import LazyVirtualList from '@lazy-virtual-scroll/react';
+import LazyVirtualScroll from '@lazy-virtual-scroll/react';
 
 const MyList = () => {
   const [items] = useState(Array.from({ length: 10000 }, (_, i) => ({ 
@@ -44,7 +44,7 @@ const MyList = () => {
 
   return (
     <div style={{ height: '500px', width: '100%' }}>
-      <LazyVirtualList
+      <LazyVirtualScroll
         totalItems={items.length}
         itemSize={70}
         data={items}
@@ -85,7 +85,7 @@ const MyList = () => {
 
 ```jsx
 import React, { useState } from 'react';
-import LazyVirtualList from 'react-lazy-virtual-scroll';
+import LazyVirtualScroll from 'react-lazy-virtual-scroll';
 
 const AdvancedExample = () => {
   const [items] = useState(Array.from({ length: 10000 }, (_, i) => ({ 
@@ -110,7 +110,7 @@ const AdvancedExample = () => {
   
   return (
     <div style={{ height: '500px', width: '100%' }}>
-      <LazyVirtualList
+      <LazyVirtualScroll
         totalItems={items.length}
         itemSize={50}
         data={items}
@@ -161,7 +161,7 @@ const AdvancedExample = () => {
 The `render` prop is a required function that determines how each item is displayed:
 
 ```jsx
-<LazyVirtualList
+<LazyVirtualScroll
   // ...other props
   render={(index, item) => (
     <div className="list-item">
@@ -185,7 +185,7 @@ The `render` prop is a required function that determines how each item is displa
 The optional `renderLoading` prop lets you customize the loading state for items that haven't been loaded yet:
 
 ```jsx
-<LazyVirtualList
+<LazyVirtualScroll
   // ...other props
   renderLoading={(index) => (
     <div className="loading-item">
@@ -223,7 +223,7 @@ const handleLoad = ({ startIndex, endIndex }) => {
   });
 };
 
-<LazyVirtualList onLoad={handleLoad} /* ...other props */ />
+<LazyVirtualScroll onLoad={handleLoad} /* ...other props */ />
 ```
 
 ### `onHide` Callback
@@ -238,7 +238,7 @@ const handleHide = ({ startIndex, endIndex }) => {
   cleanupItems(startIndex, endIndex);
 };
 
-<LazyVirtualList onHide={handleHide} /* ...other props */ />
+<LazyVirtualScroll onHide={handleHide} /* ...other props */ />
 ```
 
 ### `onScroll` Callback
@@ -253,7 +253,7 @@ const handleScroll = (scrollPosition) => {
   updateScrollPosition(scrollPosition);
 };
 
-<LazyVirtualList onScroll={handleScroll} /* ...other props */ />
+<LazyVirtualScroll onScroll={handleScroll} /* ...other props */ />
 ```
 
 ## Props
@@ -293,7 +293,7 @@ const handleScroll = (scrollPosition) => {
 
 ```jsx
 import React, { useState, useCallback } from 'react';
-import LazyVirtualList from '@lazy-virtual-scroll/react';
+import LazyVirtualScroll from '@lazy-virtual-scroll/react';
 
 const DataManagedList = () => {
   const [loadedRanges, setLoadedRanges] = useState(new Set());
@@ -328,7 +328,7 @@ const DataManagedList = () => {
   }, []);
   
   return (
-    <LazyVirtualList
+    <LazyVirtualScroll
       totalItems={100000}
       itemSize={60}
       onLoad={handleLoad}
@@ -369,7 +369,7 @@ const datasets = [
   // More dataset chunks...
 ];
 
-<LazyVirtualList
+<LazyVirtualScroll
   datasets={datasets}
   totalItems={10000}
   itemSize={50}
@@ -388,7 +388,7 @@ The component supports dynamic item sizes in two ways:
      10: 200, // Item at index 10 has height 200px
    };
    
-   <LazyVirtualList
+   <LazyVirtualScroll
      dynamicSizes={dynamicSizes}
      // ...other props
    />
@@ -396,7 +396,7 @@ The component supports dynamic item sizes in two ways:
 
 2. **Automatic Size Detection**:
    ```jsx
-   <LazyVirtualList
+   <LazyVirtualScroll
      autoDetectSizes={true}
      // ...other props
    />
@@ -408,7 +408,7 @@ For optimal performance with large lists:
 
 1. Use both `scrollThrottle` and `scrollDebounce` to limit scroll event processing:
    ```jsx
-   <LazyVirtualList
+   <LazyVirtualScroll
      scrollThrottle={16}  // ~60fps
      scrollDebounce={100} // Final update after scrolling stops
      // ...other props
@@ -421,7 +421,7 @@ For optimal performance with large lists:
      <div>{data.text}</div>
    ));
    
-   <LazyVirtualList
+   <LazyVirtualScroll
      // ...
      render={(index, item) => <MemoizedItem data={item} />}
    />

@@ -1,2 +1,2 @@
-export { default } from './LazyVirtualList';
-export type { VirtualListProps } from './LazyVirtualList';
+export { default } from './LazyVirtualScroll';
+export type { VirtualLazyScrollProps } from './LazyVirtualScroll';

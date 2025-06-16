@@ -18,14 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo applications for both React and Vue
 
 ### React Implementation
-- LazyVirtualList component with full TypeScript support
+- LazyVirtualScroll component with full TypeScript support
 - Support for custom item rendering
 - Loading state rendering
 - Auto-detection of item sizes
 - Scroll event handling with throttling and debouncing
 
 ### Vue Implementation
-- LazyVirtualList component for Vue 3
+- LazyVirtualScroll component for Vue 3
 - Named slots for item and loading state rendering
 - Support for dynamic sizing
 - Scroll event handling with optimizations

@@ -1,27 +1,44 @@
-import { ref } from 'vue';
+import { ref, unref, Ref } from 'vue';
 
-export function useThrottle(fn: Function, delay: number, debounce?: number) {
-  const lastCalled = ref(0);
-  let timeoutId: any = null;
+// Define a generic type for the function
+export function useThrottle<T extends (...args: unknown[]) => unknown>(
+  fn: T, 
+  delay: number | Ref<number>, 
+  debounce?: number | Ref<number>
+) {
+  const lastCalled = ref<number>(0);
+  const timeoutId = ref<ReturnType<typeof setTimeout> | null>(null);
 
-  function throttle(func: Function, wait: number) {
+  const throttledFn = function(...args: Parameters<T>): ReturnType<T> | undefined {
     const now = Date.now();
-    if (now - lastCalled.value >= wait) {
+    const currentDelay = unref(delay);
+    const currentDebounce = debounce ? unref(debounce) : undefined;
+    
+    if (now - lastCalled.value >= currentDelay) {
+      // Time has elapsed, execute immediately
       lastCalled.value = now;
-      func();
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
+      
+      // Clear any pending debounce
+      if (timeoutId.value) {
+        clearTimeout(timeoutId.value);
+        timeoutId.value = null;
       }
-    } else if (!timeoutId && debounce) {
-      timeoutId = setTimeout(() => {
-        lastCalled.value = Date.now();
-        func();
-        timeoutId = null;
-      }, debounce);
+      
+      return fn(...args) as ReturnType<T>;
+    } else if (!timeoutId.value && currentDebounce) {
+      // Set up debounced call if enabled and no pending timeout
+      return new Promise<ReturnType<T>>((resolve) => {
+        timeoutId.value = setTimeout(() => {
+          lastCalled.value = Date.now();
+          const result = fn(...args) as ReturnType<T>;
+          timeoutId.value = null;
+          resolve(result);
+        }, currentDebounce);
+      }) as unknown as ReturnType<T>;
     }
-  }
-
-  const throttledFn = (...args: any[]) => throttle(() => fn(...args), delay);
-  return throttledFn;
+    
+    return undefined;
+  };
+  
+  return throttledFn as (...args: Parameters<T>) => ReturnType<T> | undefined;
 }

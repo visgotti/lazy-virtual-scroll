@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import { copyFileSync } from 'fs';
 
 export default defineConfig({
   root: __dirname,
@@ -15,6 +16,16 @@ export default defineConfig({
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
     }),
+    {
+      name: 'copy-readme',
+      closeBundle() {
+        const readmePath = path.join(__dirname, 'README.md');
+        const outDir = '../../dist/libs/react-lazy-virtual-scroll';
+        const destPath = path.join(__dirname, outDir, 'README.md');
+        copyFileSync(readmePath, destPath);
+        console.log(`✅ Copied README.md to ${outDir}`);
+      }
+    }
   ],
 
   // Uncomment this if you are using workers.

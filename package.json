@@ -8,7 +8,7 @@
     "build:vue-demo": "nx build demo-vue",
     "build:react-demo": "nx build demo-react",
     "build:demos": "npm run build:vue-demo && npm run build:react-demo",
-    "build:all": "npm run build:vue && npm run build:react && npm run build:demos",
+    "build": "npm run build:vue && npm run build:react && npm run build:demos",
     "serve:vue": "nx serve demo-vue",
     "serve:react": "nx serve demo-react",
     "deploy": "node publish.js"

@@ -69,24 +69,6 @@
           </div>
 
           <div class="control-item">
-            <label for="direction">
-              Direction
-              <span class="tooltip" title="Orientation of the scroll (vertical or horizontal)">ⓘ</span>
-            </label>
-            <div class="toggle-switch">
-              <input
-                id="direction"
-                type="checkbox"
-                :checked="localModelValue.direction === 'row'"
-                @change="toggleDirection"
-              />
-              <span class="slider"></span>
-              <span class="label-left">Vertical</span>
-              <span class="label-right">Horizontal</span>
-            </div>
-          </div>
-
-          <div class="control-item">
             <label for="autoDetectSizes">
               Auto Detect Sizes
               <span class="tooltip" title="Automatically detect and adjust to variable item sizes">ⓘ</span>
@@ -97,7 +79,9 @@
                 type="checkbox"
                 v-model="localModelValue.autoDetectSizes"
               />
-              <span class="slider"></span>
+              <span class="slider"
+                @click="localModelValue.autoDetectSizes = !localModelValue.autoDetectSizes"
+              ></span>
               <span class="label-left">Off</span>
               <span class="label-right">On</span>
             </div>
@@ -172,7 +156,9 @@
                 type="checkbox"
                 v-model="localModelValue.sortDatasets"
               />
-              <span class="slider"></span>
+              <span class="slider"
+                @click="localModelValue.sortDatasets = !localModelValue.sortDatasets"
+              ></span>
               <span class="label-left">Off</span>
               <span class="label-right">On</span>
             </div>
@@ -228,7 +214,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { type ScrollProps, defaultScrollProps } from '@lazy-virtual-scroll/core';
 
 const props = defineProps<{
@@ -236,7 +222,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: ScrollProps): void;
+  (event: 'update:modelValue', value: ScrollProps): void;
 }>();
 
 // State for controlling the visibility of the controls
@@ -248,30 +234,32 @@ const toggleControls = () => {
   isExpanded.value = !isExpanded.value;
 };
 
-// Toggle direction between column and row
-const toggleDirection = () => {
-  localModelValue.value = {
-    ...localModelValue.value,
-    direction: localModelValue.value.direction === 'column' ? 'row' : 'column'
-  };
-};
-
-// Create a local copy of the model value
+// Create a local copy of the model value using computed property
 const localModelValue = computed({
-  get: () => props.modelValue || { ...defaultScrollProps },
-  set: (value) => {
+  get: () => {
+    // If modelValue is undefined or null, return default props with totalItems
+    if (!props.modelValue) {
+      return {
+        ...defaultScrollProps,
+        totalItems: 300
+      } as ScrollProps;
+    }
+    // Otherwise return the model value
+    return props.modelValue;
+  },
+  set: (value: ScrollProps) => {
     emit('update:modelValue', value);
   }
 });
 
-// Watch for changes in the local model value and emit updates
-watch(
-  localModelValue,
-  (newValue) => {
-    emit('update:modelValue', { ...newValue });
-  },
-  { deep: true }
-);
+// Toggle direction between column and row
+const toggleDirection = () => {
+  const currentValue = { ...localModelValue.value };
+  localModelValue.value = {
+    ...currentValue,
+    direction: currentValue.direction === 'column' ? 'row' : 'column'
+  };
+};
 
 // Reset all values to their defaults
 const resetToDefaults = () => {
@@ -397,6 +385,7 @@ const resetToDefaults = () => {
   &.range {
     input[type="range"] {
       -webkit-appearance: none;
+      appearance: none;
       width: 100%;
       height: 6px;
       border-radius: 10px;

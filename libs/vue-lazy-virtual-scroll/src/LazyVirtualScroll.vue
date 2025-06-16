@@ -6,7 +6,7 @@
       :style="scrollInnerStyleObject"
     >
       <template v-if="autoDetectSizes">
-        <div v-for="(item, index) in finalArray" :key="index" :style="listItemStyleObject" class="list-item" :ref="el => el && setItemRef(index, el as HTMLElement)">
+        <div v-for="(item, index) in finalArray" :key="index" :style="listItemStyleObject" class="list-item" :ref="(el: HTMLElement | null) => el && setItemRef(index, el)">
           <slot name="default" v-if="item" :item="item" :index="startIndex + index"></slot>
           <slot name="loading" v-else :index="startIndex + index"></slot>
         </div>
@@ -219,18 +219,37 @@ const emit = defineEmits<{
   (e: 'hide', value: { startIndex: number; endIndex: number }): void;
 }>();
 
+// Use refs to make throttle and debounce values reactive
+const scrollThrottleRef = computed(() => props.scrollThrottle || 0);
+const scrollDebounceRef = computed(() => props.scrollDebounce || 0);
 
-const throttledScroll = props.scrollThrottle ? useThrottle(handleScroll, props.scrollThrottle, props.scrollDebounce || props.scrollThrottle) : handleScroll;
-const debouncedScroll = props.scrollDebounce ? useDebounceFn(handleScroll, props.scrollDebounce) : throttledScroll;
+// Create throttled and debounced functions using the reactive refs
+const throttledScrollFn = useThrottle(handleScroll, scrollThrottleRef, computed(() => scrollDebounceRef.value || scrollThrottleRef.value));
+const debouncedScrollFn = useDebounceFn(handleScroll, scrollDebounceRef);
+
+// Create a computed property that will automatically update when throttle/debounce changes
+const debouncedScroll = computed(() => {
+  if (scrollDebounceRef.value > 0) {
+    return debouncedScrollFn;
+  } else if (scrollThrottleRef.value > 0) {
+    return throttledScrollFn;
+  } else {
+    return handleScroll;
+  }
+});
+
+// Create wrapper handler functions
+const handleScrollEvent = () => debouncedScroll.value();
+const handleResizeEvent = () => debouncedScroll.value();
 
 onMounted(() => {
-  window.addEventListener('scroll', debouncedScroll);
-  window.addEventListener('resize', debouncedScroll);
+  window.addEventListener('scroll', handleScrollEvent);
+  window.addEventListener('resize', handleResizeEvent);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', debouncedScroll);
-  window.removeEventListener('resize', debouncedScroll);
+  window.removeEventListener('scroll', handleScrollEvent);
+  window.removeEventListener('resize', handleResizeEvent);
   Object.values(resizeObservers).forEach(({ observer }) => observer.disconnect());
   resetOuterObserver();
 });
@@ -241,7 +260,7 @@ watch(scrollOuter, (v) => {
   }
   initOuterObserver();
   scrollOuter.value.onscroll = () => {
-    debouncedScroll();
+    debouncedScroll.value();
     emit('scroll', scrollOuter.value[scrollProp.value])
   };
   nextTick(() => {

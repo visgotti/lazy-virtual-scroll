@@ -131,7 +131,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import LazyVirtualScroll, { type Dataset, type LoadEventPayload } from '@lazy-virtual-scroll/vue';
 import ScrollPropControls from './ScrollPropControls.vue';
 import { 
@@ -139,8 +139,6 @@ import {
   defaultScrollProps
 } from '@lazy-virtual-scroll/core';
 import { 
-  type MockDataItem,
-  generateMockDatasets,
   loadDatasetWithDelay
 } from '@lazy-virtual-scroll/shared-mock';
 

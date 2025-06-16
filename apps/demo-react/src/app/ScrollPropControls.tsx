@@ -103,9 +103,14 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
                       checked={localProps.autoDetectSizes}
                       onChange={(e) => handleChange('autoDetectSizes', e.target.checked)}
                     />
-                    <span className="slider"></span>
-                    <span className="label-left">Off</span>
-                    <span className="label-right">On</span>
+                    <label 
+                      htmlFor="autoDetectSizes"
+                      className="slider-container"
+                    >
+                      <span className="slider"></span>
+                      <span className="label-left">Off</span>
+                      <span className="label-right">On</span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -183,10 +188,15 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
                       type="checkbox"
                       checked={localProps.sortDatasets}
                       onChange={(e) => handleChange('sortDatasets', e.target.checked)}
-                    />
-                    <span className="slider"></span>
-                    <span className="label-left">Off</span>
-                    <span className="label-right">On</span>
+                    />                    
+                    <label 
+                      htmlFor="sortDatasets"
+                      className="slider-container"
+                    >
+                      <span className="slider"></span>
+                      <span className="label-left">Off</span>
+                      <span className="label-right">On</span>
+                    </label>
                   </div>
                 </div>
               </div>

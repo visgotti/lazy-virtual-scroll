@@ -1,7 +1,6 @@
 import type { Dataset, LoadEventPayload } from '../types';
 
 // Utility functions can be added here as needed
-
 export const splitLoadEventBasedOnAlreadyLoaded = (event: LoadEventPayload, isLoaded: (itemIndex: number) => boolean): Array<LoadEventPayload> => {
   const loadEvents: LoadEventPayload[] = [];
   let currentStartIndex: number | null = null;
@@ -87,14 +86,12 @@ export const fillAndFlattenDatasets = ({
   return items;
 };
 
-
 export const indexIsLoaded = (itemIndex: number, datasets: Dataset[]): boolean => {
   return datasets.some(dataset => {
     const datasetEndIndex = dataset.startingIndex + dataset.data.length - 1;
     return itemIndex >= dataset.startingIndex && itemIndex <= datasetEndIndex;
   });
 }
-
 
 export function mergeAdjacentDatasets(datasets: Dataset[], sortFirst=true): Dataset[] {
   if (datasets.length === 0) return datasets;

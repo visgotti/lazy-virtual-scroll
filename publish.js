@@ -82,7 +82,7 @@ function checkVersions() {
   let firstVersion = null;
   let firstName = null;
   
-  for (const packagePath of PACKAGES) {
+  for (const packagePath of [...PACKAGES, 'libs/core']) {
     const { name, version } = getPackageInfo(packagePath);
     
     if (firstVersion === null) {
@@ -124,7 +124,7 @@ function buildPackages() {
 function publishPackages(version) {
   console.log('📦 Publishing packages...');
   
-  for (const packagePath of PACKAGES) {
+  for (const packagePath of [...PACKAGES, 'libs/core']) {
     const distPath = `dist/${packagePath}`;
     const { name } = getPackageInfo(packagePath);
     

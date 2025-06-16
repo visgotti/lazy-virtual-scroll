@@ -5,7 +5,7 @@
 ```vue
 <template>
   <div style="height: 500px; width: 100%">
-    <LazyVirtualList
+    <LazyVirtualScroll
       :totalItems="items.length"
       :itemSize="50"
       :data="items"
@@ -47,7 +47,7 @@ pnpm add @lazy-virtual-scroll/vue
 ```vue
 <template>
   <div style="height: 500px; width: 100%">
-    <LazyVirtualList
+    <LazyVirtualScroll
       :totalItems="items.length"
       :itemSize="50"
       :data="items"
@@ -64,13 +64,13 @@ pnpm add @lazy-virtual-scroll/vue
           Loading item {{ index }}...
         </div>
       </template>
-    </LazyVirtualList>
+    </LazyVirtualScroll>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import LazyVirtualList from 'vue-lazy-virtual-scroll';
+import LazyVirtualScroll from 'vue-lazy-virtual-scroll';
 
 const items = ref(Array.from({ length: 10000 }, (_, i) => ({ 
   id: i, 
@@ -82,7 +82,7 @@ const items = ref(Array.from({ length: 10000 }, (_, i) => ({
 ```vue
 <template>
   <div style="height: 500px; width: 100%">
-    <LazyVirtualList
+    <LazyVirtualScroll
       :totalItems="items.length"
       :itemSize="50"
       :data="items"
@@ -99,13 +99,13 @@ const items = ref(Array.from({ length: 10000 }, (_, i) => ({
           Loading item {{ index }}...
         </div>
       </template>
-    </LazyVirtualList>
+    </LazyVirtualScroll>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import LazyVirtualList from '@lazy-virtual-scroll/vue';
+import LazyVirtualScroll from '@lazy-virtual-scroll/vue';
 
 const items = ref(Array.from({ length: 10000 }, (_, i) => ({ 
   id: i, 
@@ -142,14 +142,14 @@ const handleHide = ({ startIndex, endIndex }) => {
 The default slot is used to render each item in the list:
 
 ```vue
-<LazyVirtualList :totalItems="1000" :itemSize="60">
+<LazyVirtualScroll :totalItems="1000" :itemSize="60">
   <template #default="{ item, index }">
     <div class="list-item">
       <h3>Item {{ index }}</h3>
       <p>{{ item.content }}</p>
     </div>
   </template>
-</LazyVirtualList>
+</LazyVirtualScroll>
 ```
 
 **Slot Props:**
@@ -161,7 +161,7 @@ The default slot is used to render each item in the list:
 The loading slot is used to render items that are still loading:
 
 ```vue
-<LazyVirtualList :totalItems="1000" :itemSize="60">
+<LazyVirtualScroll :totalItems="1000" :itemSize="60">
   <template #default="{ item, index }">
     <!-- Regular item content -->
     <div class="list-item">{{ item.content }}</div>
@@ -173,7 +173,7 @@ The loading slot is used to render items that are still loading:
       <span>Loading item {{ index }}...</span>
     </div>
   </template>
-</LazyVirtualList>
+</LazyVirtualScroll>
 ```
 
 **Slot Props:**
@@ -189,7 +189,7 @@ Emitted when new items become visible and need to be loaded:
 
 ```vue
 <template>
-  <LazyVirtualList @load="handleLoad" />
+  <LazyVirtualScroll @load="handleLoad" />
 </template>
 
 <script setup>
@@ -217,7 +217,7 @@ Emitted when items go out of view:
 
 ```vue
 <template>
-  <LazyVirtualList @hide="handleHide" />
+  <LazyVirtualScroll @hide="handleHide" />
 </template>
 
 <script setup>
@@ -240,7 +240,7 @@ Emitted when the user scrolls:
 
 ```vue
 <template>
-  <LazyVirtualList @scroll="handleScroll" />
+  <LazyVirtualScroll @scroll="handleScroll" />
 </template>
 
 <script setup>
@@ -261,7 +261,7 @@ const handleScroll = (scrollPosition) => {
 ```vue
 <template>
   <div style="height: 500px; width: 100%">
-    <LazyVirtualList
+    <LazyVirtualScroll
       :totalItems="items.length"
       :itemSize="50"
       :data="items"
@@ -300,13 +300,13 @@ const handleScroll = (scrollPosition) => {
           Loading item {{ index }}...
         </div>
       </template>
-    </LazyVirtualList>
+    </LazyVirtualScroll>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import LazyVirtualList from 'vue-lazy-virtual-scroll';
+import LazyVirtualScroll from 'vue-lazy-virtual-scroll';
 
 const items = ref(Array.from({ length: 10000 }, (_, i) => ({ 
   id: i, 
@@ -403,7 +403,7 @@ const handleHide = ({ startIndex, endIndex }) => {
 ```vue
 <template>
   <div style="height: 500px; width: 100%">
-    <LazyVirtualList
+    <LazyVirtualScroll
       :totalItems="100000"
       :itemSize="60"
       @load="handleLoad"
@@ -420,13 +420,13 @@ const handleHide = ({ startIndex, endIndex }) => {
           Loading item {{ index }}...
         </div>
       </template>
-    </LazyVirtualList>
+    </LazyVirtualScroll>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import LazyVirtualList from '@lazy-virtual-scroll/vue';
+import LazyVirtualScroll from '@lazy-virtual-scroll/vue';
 
 const loadedRanges = ref(new Set());
 const hiddenRanges = ref(new Set());
@@ -486,14 +486,14 @@ const datasets = ref([
 ```
 
 ```vue
-<LazyVirtualList
+<LazyVirtualScroll
   :datasets="datasets"
   :totalItems="10000"
   :itemSize="50"
   <!-- ...other props -->
 >
   <!-- slots -->
-</LazyVirtualList>
+</LazyVirtualScroll>
 ```
 
 ## Dynamic Sizing
@@ -509,22 +509,22 @@ The component supports dynamic item sizes in two ways:
    ```
 
    ```vue
-   <LazyVirtualList
+   <LazyVirtualScroll
      :dynamicSizes="dynamicSizes"
      <!-- ...other props -->
    >
      <!-- slots -->
-   </LazyVirtualList>
+   </LazyVirtualScroll>
    ```
 
 2. **Automatic Size Detection**:
    ```vue
-   <LazyVirtualList
+   <LazyVirtualScroll
      :autoDetectSizes="true"
      <!-- ...other props -->
    >
      <!-- slots -->
-   </LazyVirtualList>
+   </LazyVirtualScroll>
    ```
 
 ## Performance Optimization
@@ -533,13 +533,13 @@ For optimal performance with large lists:
 
 1. Use both `scrollThrottle` and `scrollDebounce` to limit scroll event processing:
    ```vue
-   <LazyVirtualList
+   <LazyVirtualScroll
      :scrollThrottle="16"  <!-- ~60fps -->
      :scrollDebounce="100" <!-- Final update after scrolling stops -->
      <!-- ...other props -->
    >
      <!-- slots -->
-   </LazyVirtualList>
+   </LazyVirtualScroll>
    ```
 
 2. Keep component renders lightweight by using `v-memo` for list items:
@@ -565,7 +565,7 @@ The component supports dynamic item sizes in two ways:
    </script>
    
    <template>
-     <LazyVirtualList
+     <LazyVirtualScroll
        :dynamicSizes="dynamicSizes"
        <!-- ...other props -->
      />
@@ -574,7 +574,7 @@ The component supports dynamic item sizes in two ways:
 
 2. **Automatic Size Detection**:
    ```vue
-   <LazyVirtualList
+   <LazyVirtualScroll
      :autoDetectSizes="true"
      <!-- ...other props -->
    />
@@ -586,7 +586,7 @@ For optimal performance with large lists:
 
 1. Use both `scrollThrottle` and `scrollDebounce` to limit scroll event processing:
    ```vue
-   <LazyVirtualList
+   <LazyVirtualScroll
      :scrollThrottle="16"
      :scrollDebounce="100"
      <!-- ...other props -->
@@ -595,14 +595,14 @@ For optimal performance with large lists:
 
 2. Use `v-memo` for complex items to prevent unnecessary re-renders:
    ```vue
-   <LazyVirtualList>
+   <LazyVirtualScroll>
      <template #default="{ item, index }">
        <div v-memo="[item?.id, item?.updatedAt]" class="complex-item">
          <!-- Complex item content -->
          {{ item?.content }}
        </div>
      </template>
-   </LazyVirtualList>
+   </LazyVirtualScroll>
    ```
 
 3. Keep item templates simple and avoid heavy computations in templates:

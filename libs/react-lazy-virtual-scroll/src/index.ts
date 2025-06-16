@@ -1,6 +1,6 @@
-import LazyVirtualList from './lib/LazyVirtualList';
+import LazyVirtualScroll from './lib/LazyVirtualScroll';
 export type { Dataset, LoadEventPayload, ScrollProps } from '@core';
-export type { VirtualListProps } from './lib/LazyVirtualList';
-export { LazyVirtualList };
-export default LazyVirtualList;
+export type { VirtualLazyScrollProps } from './lib/LazyVirtualScroll';
+export { LazyVirtualScroll };
+export default LazyVirtualScroll;
 export * from '@core';

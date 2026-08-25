@@ -191,8 +191,6 @@ const defaultScrollProps: Omit<ScrollProps, 'totalItems'> = {
 };
 ```
 
-### Dataset
-
 Represents a chunk of data with a starting index:
 
 ```typescript
@@ -212,6 +210,122 @@ type LoadEventPayload = {
   endIndex: number;        // Last visible/hidden item index
 }
 ```
+
+## Data Subsystem
+
+Everything above is stateless: the components compute indexes and the consumer
+owns the rows. The `data/` subsystem is the opt-in counterpart that owns a row
+cache, so rows can be loaded without being rendered and read back
+asynchronously. It is framework-agnostic; the React and Vue packages only add
+thin lifecycle bindings (`useLazyDataSource`).
+
+### `createLazyDataSource`
+
+The public facade. See the
+[React](../react-lazy-virtual-scroll/README.md#background-loading--data-access)
+or [Vue](../vue-lazy-virtual-scroll/README.md#background-loading--data-access)
+README for usage; this section covers the internals.
+
+```typescript
+function createLazyDataSource<T>(options: {
+  totalItems: number;
+  fetchRange: (startIndex: number, endIndex: number) => Promise<T[]> | T[];
+  useIndexedDb?: boolean | { dbName?: string; storeName?: string };
+  batchSize?: number;
+  background?: boolean | BackgroundOptions;
+}): LazyDataSource<T>
+```
+
+It composes three independently testable pieces:
+
+| Piece | Responsibility |
+|-------|----------------|
+| `LoadedRanges` | Which indexes are cached, as a merged interval set |
+| `RowStore` | Where rows live (`MemoryRowStore` or `IndexedDbRowStore`) |
+| `BatchScanner` | Pacing, concurrency, pausing and retries for background work |
+
+The source itself only owns request de-duplication and gap-splitting: it
+decides what to fetch, never how to store it or when to run it.
+
+### `RowStore` and the hot window
+
+`RowStore` is the storage boundary. Every read and write returns a promise
+regardless of backend — "async parity" — so a consumer never branches on where
+the bytes live and swapping backends is a config change.
+
+Two members are deliberately synchronous. Rendering happens inside a Vue
+`computed` / React `useMemo`, so the visible window has to be readable without
+awaiting or the list flashes empty on every scroll tick. Implementations
+therefore keep a **hot window** — the visible range plus `itemBuffer`, and
+nothing else — resident in a plain `Map`:
+
+```typescript
+peek(startIndex: number, endIndex: number): Array<T | undefined>;  // sync
+has(index: number): boolean;                                       // sync
+setHotWindow(startIndex: number, endIndex: number): Promise<void>;
+```
+
+With `MemoryRowStore` every cached row is resident, so `peek` can serve
+anything. With `IndexedDbRowStore` only the hot window is resident; everything
+else lives in IndexedDB and is reachable solely through the async methods. That
+is what keeps memory at `O(visible + buffer)` while the cache holds the whole
+list.
+
+Both implementations run against one shared conformance suite
+(`row-store.conformance.ts`), so parity is enforced by tests rather than by
+discipline. Add a backend by implementing `RowStore` and registering it there.
+
+`IndexedDbRowStore` is session-scoped: the database is wiped on open and
+deleted on dispose, which is why there is no version key or TTL. `createRowStore`
+falls back to memory when IndexedDB is missing or fails to open.
+
+### `LoadedRanges`
+
+A sorted, non-overlapping interval set over row indexes. Loads are always
+range-shaped, so intervals stay tiny (a handful of entries rather than one byte
+per row) while still answering membership and gap queries synchronously — which
+is what lets the scheduler pick its next batch without awaiting.
+
+```typescript
+class LoadedRanges {
+  add(startIndex: number, endIndex: number): void;
+  remove(startIndex: number, endIndex: number): void;
+  has(index: number): boolean;                                  // binary search
+  missingWithin(startIndex: number, endIndex: number): Range[]; // gaps to fetch
+  firstMissing(from: number, to: number): number | null;
+  count(): number;
+  clear(): void;
+  toArray(): Range[];
+}
+```
+
+### `createBatchScanner`
+
+Walks an index space in batches off the critical path. It knows nothing about
+stores or fetching — it is handed `nextRange` and `process` and owns only
+pacing, concurrency, pausing and retries.
+
+```typescript
+function createBatchScanner(options: {
+  totalItems: number;
+  concurrency?: number;
+  maxRetries?: number;
+  batchSizeHint?: number;
+  nextRange: () => Range | null;
+  process: (range: Range) => Promise<void>;
+  schedule?: (cb: () => void) => void;
+  onProgress?: (progress: ScanProgress) => void;
+  onError?: (error: unknown, range: Range) => void;
+}): BatchScanner
+```
+
+`schedule` defaults to `requestIdleCallback` (with a `setTimeout` fallback for
+Safari and non-browser hosts), which is what lets a scan run during scrolling
+without competing with the scroll handler. It is injectable so tests need no
+fake clock.
+
+Viewport work preempts the scan implicitly: ranges the viewport has already
+claimed simply never come back from `nextRange`.
 
 ## Building
 

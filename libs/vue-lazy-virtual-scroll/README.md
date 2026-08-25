@@ -13,6 +13,7 @@ A high-performance virtualized list component for Vue 3 that efficiently renders
 - **Bi-directional Scrolling**: Support for both vertical and horizontal scrolling
 - **Performance Optimized**: Debounced and throttled scroll handling
 - **Flexible Data Structure**: Support for continuous or fragmented datasets
+- **Background Loading**: Optionally cache the whole list off the critical path and query it asynchronously, with IndexedDB storage so it never has to sit in memory
 - **TypeScript Support**: Full type definitions included
 
 ## Installation
@@ -340,6 +341,7 @@ const handleHide = ({ startIndex, endIndex }) => {
 | `outerMinLengthCssValue` | `string` | `'100%'` | `min-height` (column) / `min-width` (row) of the outer container |
 | `outerLengthCssValue` | `string` | `'100%'` | `height` (column) / `width` (row) of the outer container |
 | `listItemStyle` | `{ [key: string]: string }` | `{}` | Extra styles merged onto each item wrapper (on top of `display: inline-block`). Only applied when `autoDetectSizes` is `true`. |
+| `source` | `LazyDataSource<T>` | `null` | Opt-in data source (see [Background Loading & Data Access](#background-loading--data-access)). Replaces `data`/`datasets` |
 
 ## Event Reference
 
@@ -431,6 +433,262 @@ const handleScroll = (scrollPosition) => {
   opacity: 0.6;
 }
 </style>
+```
+
+## Background Loading & Data Access
+
+By default the list is a pure view: you hold the rows and hand them in through
+`data`/`datasets`, and `@load` tells you when to fetch more. That renders well,
+but it leaves you with no way to reach a row nobody has scrolled to yet — so
+search, export or "select all" end up loading the whole list into memory.
+
+`useLazyDataSource` inverts that. You give it one `fetchRange` function and it
+owns a row cache that:
+
+- fills the viewport as you scroll (replacing the fetch in your `@load` handler),
+- can walk the **entire** list in the background, off the critical path —
+  exactly as if every row were scrolling into view, but rendering nothing, and
+- exposes that cache through an **async API** usable anywhere in your app.
+
+It is entirely opt-in. Without a `:source` prop the component behaves exactly as
+it always has.
+
+### Quick start
+
+```vue
+<template>
+  <LazyVirtualScroll
+    :totalItems="100000"
+    :itemSize="50"
+    :source="source"
+  >
+    <template #default="{ item }">
+      <div>{{ item.name }}</div>
+    </template>
+    <template #loading="{ index }">
+      <div>Loading {{ index }}…</div>
+    </template>
+  </LazyVirtualScroll>
+</template>
+
+<script lang="ts" setup>
+import LazyVirtualScroll, { useLazyDataSource } from '@lazy-virtual-scroll/vue';
+
+const source = useLazyDataSource<User>({
+  totalItems: 100000,
+  // Called for every range the viewport, a background scan or getRange() needs.
+  fetchRange: async (startIndex, endIndex) => {
+    const res = await fetch(`/api/users?from=${startIndex}&to=${endIndex}`);
+    return res.json(); // must resolve exactly (endIndex - startIndex + 1) rows
+  },
+});
+</script>
+```
+
+With `:source` set you no longer pass `data`/`datasets` and no longer fetch in
+`@load`: the list reports its viewport to the source and the source does the
+rest. `@load`, `@hide` and `@scroll` still fire, so existing listeners keep
+working. The source is disposed automatically when the component unmounts.
+
+`totalItems` may be a plain number, a `ref`, or a getter — a reactive value is
+forwarded to the source, so a list that grows does not need it rebuilt:
+
+```ts
+const total = ref(0);
+const source = useLazyDataSource<User>({ totalItems: total, fetchRange });
+```
+
+### Migrating an existing list
+
+Your current `@load` handler already contains `fetchRange`. Move the fetch out
+of it and drop the "have I already loaded this?" bookkeeping — the source
+tracks loaded ranges itself and never fetches the same row twice.
+
+```diff
+-const loadedDatasets = ref<Dataset[]>([]);
+-
+-const handleLoad = ({ startIndex, endIndex }) => {
+-  const alreadyLoaded = loadedDatasets.value.some(/* ...range check... */);
+-  if (alreadyLoaded) return;
+-  loadUsers(startIndex, endIndex - startIndex + 1)
+-    .then((d) => (loadedDatasets.value = [...loadedDatasets.value, d]));
+-};
++const source = useLazyDataSource<User>({
++  totalItems,
++  fetchRange: (startIndex, endIndex) =>
++    loadUsers(startIndex, endIndex - startIndex + 1),
++});
+```
+
+```diff
+ <LazyVirtualScroll
+-  :datasets="loadedDatasets"
+-  @load="handleLoad"
++  :source="source"
+   />
+```
+
+### Background batch processing
+
+Set `background` to walk the whole list without rendering it. Batches are
+scheduled through `requestIdleCallback`, so the scan yields to scrolling rather
+than competing with it, and any range the viewport already pulled in is
+skipped.
+
+```ts
+const source = useLazyDataSource<User>({
+  totalItems: 100000,
+  fetchRange,
+  background: {
+    batchSize: 200,   // rows per request
+    concurrency: 1,   // requests in flight; keep low so the viewport wins
+    autoStart: true,  // begin as soon as the source is ready
+  },
+});
+```
+
+Leave `autoStart` off to drive it yourself — for example, only once the user
+opens a search box:
+
+```ts
+source.startBackground();
+source.pauseBackground();
+source.resumeBackground();
+source.stopBackground();
+
+await source.whenBackgroundIdle(); // resolves when the scan finishes
+```
+
+Progress is readable at any time. `useLazyDataSourceVersion` returns a ref that
+bumps whenever the cache changes, which is what makes a computed re-evaluate:
+
+```ts
+const version = useLazyDataSourceVersion(source);
+const indexed = computed(() => {
+  version.value; // track the cache
+  const { loadedCount, totalItems } = source.stats();
+  return `Indexed ${loadedCount} / ${totalItems}`;
+});
+```
+
+Because `background` means fetching your entire list, it is **off by default**.
+
+### Reading data outside the list
+
+Everything shares one cache, so a row pulled in by the background scan is
+already there when it scrolls into view, and vice versa.
+
+```ts
+const user = await source.getItem(4200);
+const page = await source.getRange(0, 99);
+await source.prefetch(500, 599);   // warm the cache without reading it back
+```
+
+For anything that has to look at every row, use `scan()`. It is an async
+iterator, so you only ever hold one batch at a time — this is what lets you
+search a 100k-row list without materialising it:
+
+```ts
+const search = async (term: string) => {
+  const hits: number[] = [];
+  for await (const { startIndex, rows } of source.scan({ batchSize: 500 })) {
+    rows.forEach((row, i) => {
+      if (row?.name.toLowerCase().includes(term)) hits.push(startIndex + i);
+    });
+  }
+  return hits;
+};
+```
+
+When your data changes underneath the cache, drop it and let it refill:
+
+```ts
+await source.invalidate(100, 199); // one range
+await source.invalidate();         // everything
+```
+
+### Storing rows in IndexedDB
+
+A full background scan of a large list is a lot of rows to keep on the heap.
+Set `useIndexedDb` and they are spilled to IndexedDB instead: only the visible
+range plus `itemBuffer` stays in memory, and everything else is reachable
+through the same async API.
+
+```ts
+const source = useLazyDataSource<User>({
+  totalItems: 1000000,
+  fetchRange,
+  useIndexedDb: true,          // or { dbName: 'users' }
+  background: { autoStart: true },
+});
+```
+
+Nothing else in your code changes. Every method on the source is async
+whichever backend is in use, so switching is a one-line change — and if
+IndexedDB is unavailable (server-side rendering, Safari private browsing) the
+source logs a warning and falls back to memory on its own.
+
+The database is **session-scoped**: it is wiped when the source is created and
+deleted when it is disposed. It is a cache that happens to live outside the
+heap, not a persistence layer, so there is no version key or staleness contract
+to get wrong.
+
+```ts
+const { loadedCount, residentCount } = source.stats();
+// loadedCount   -> rows cached, in memory or in IndexedDB
+// residentCount -> rows actually on the heap right now
+```
+
+### `useLazyDataSource(options)`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `totalItems` | `number \| Ref<number> \| () => number` | *(required)* | Number of rows in the list |
+| `fetchRange` | `(startIndex, endIndex) => Promise<T[]> \| T[]` | *(required)* | Resolves an inclusive range; must return exactly `endIndex - startIndex + 1` rows |
+| `useIndexedDb` | `boolean \| { dbName?, storeName? }` | `false` | Spill rows to IndexedDB instead of the heap |
+| `batchSize` | `number` | `50` | Rows per batch for `scan()` and, by default, the background scan |
+| `background` | `boolean \| BackgroundOptions` | `false` | Background scan configuration |
+
+`BackgroundOptions`: `{ batchSize?, concurrency?, maxRetries?, autoStart? }`.
+
+### `LazyDataSource` methods
+
+| Method | Description |
+|--------|-------------|
+| `getItem(index)` | Resolve a single row, fetching it if needed |
+| `getRange(start, end)` | Resolve an inclusive range, fetching only the gaps |
+| `prefetch(start, end)` | Warm a range without reading it back |
+| `scan(options?)` | Async iterator over the list in batches |
+| `peek(start, end)` | **Synchronous** read of resident rows — used by the render path |
+| `has(index)` | **Synchronous** check for whether a row is cached |
+| `invalidate(start?, end?)` | Drop a range, or everything |
+| `setTotalItems(n)` | Tell the source the list length changed |
+| `stats()` | `{ loadedCount, residentCount, totalItems, background }` |
+| `startBackground()` / `pauseBackground()` / `resumeBackground()` / `stopBackground()` | Control the background scan |
+| `whenBackgroundIdle()` | Resolves when the background scan finishes |
+| `subscribe(fn)` | Change notification; returns an unsubscribe function |
+| `on(event, fn)` | `'rangeLoaded'`, `'progress'` or `'error'`; returns an unsubscribe function |
+| `isDisposed()` | Whether `dispose()` has run |
+| `dispose()` | Stop the scan and release the store |
+
+Concurrent callers are deduplicated: if the viewport, a background batch and a
+`getRange()` all want the same rows, one request is made and everyone waits on
+it.
+
+### Error handling
+
+`getItem`, `getRange`, `prefetch` and `scan` reject if `fetchRange` throws, and
+the failed range is left uncached so the next attempt retries it. Failures the
+list triggers on its own — the viewport and background batches — have nobody to
+reject to, so they are reported through the `error` event instead:
+
+```ts
+onMounted(() => {
+  const off = source.on('error', ({ error, range }) => {
+    console.error('failed to load', range, error);
+  });
+  onUnmounted(off);
+});
 ```
 
 ## Working with Fragmented Datasets

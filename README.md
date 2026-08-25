@@ -22,6 +22,7 @@ This monorepo contains the following packages:
 - **Bi-directional Scrolling**: Support for both vertical and horizontal scrolling
 - **Performance Optimized**: Debounced and throttled scroll handling
 - **Flexible Data Structure**: Support for continuous or fragmented datasets
+- **Background Loading**: Optionally cache the whole list off the critical path and query it asynchronously, with IndexedDB storage so it never has to sit in memory
 - **TypeScript Support**: Full type definitions included
 
 ## Quick Start
@@ -108,6 +109,48 @@ npm install @lazy-virtual-scroll/vue
   </template>
 </LazyVirtualScroll>
 ```
+
+## Background Loading & Data Access
+
+By default the components are pure views — you own the rows and pass them in,
+and `onLoad`/`@load` tells you when to fetch more. That covers rendering, but
+not reaching a row nobody has scrolled to, which is what search, export and
+"select all" need.
+
+Passing a **data source** inverts that. You supply one `fetchRange` function and
+the source owns a row cache that fills the viewport as you scroll, optionally
+walks the entire list in the background (off the critical path, rendering
+nothing), and exposes the whole thing through an async API:
+
+```tsx
+// React
+const source = useLazyDataSource<User>({
+  totalItems: 1000000,
+  fetchRange: (startIndex, endIndex) => loadUsers(startIndex, endIndex),
+  useIndexedDb: true,                 // spill rows off the heap
+  background: { autoStart: true },    // index the whole list in the background
+});
+
+<LazyVirtualScroll totalItems={1000000} itemSize={50} source={source} render={...} />
+
+// Anywhere else — search without ever holding the list in memory
+for await (const { startIndex, rows } of source.scan()) {
+  /* ...filter each batch... */
+}
+```
+
+```vue
+<!-- Vue -->
+<LazyVirtualScroll :totalItems="1000000" :itemSize="50" :source="source" />
+```
+
+Every method is async whichever backend is in use, so turning `useIndexedDb` on
+or off never changes calling code. The feature is entirely opt-in: without a
+`source` prop nothing about the components changes.
+
+Full documentation:
+[React](libs/react-lazy-virtual-scroll/README.md#background-loading--data-access)
+· [Vue](libs/vue-lazy-virtual-scroll/README.md#background-loading--data-access)
 
 ## Documentation
 

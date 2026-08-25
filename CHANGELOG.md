@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   jumps as each one resolves, and the item wrapper carries a matching
   `min-height` / `min-width` so the browser enforces what the scroll maths
   assumes.
+- The Vue demo is split into a component per example over a shared composable,
+  and both demos render deterministic lorem body copy in expanded items so the
+  dynamic-sizing behaviour is actually visible. Demo-only; the published
+  packages are unaffected.
 
 ### Fixed
 - Vue: `handleScroll` threw on every scroll when `autoDetectSizes` was off and

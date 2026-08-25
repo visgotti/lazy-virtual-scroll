@@ -1,5 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { resolveIndexes, utils, type Dataset, type ScrollProps } from '@core';
+import { resolveIndexes, utils, type Dataset, type LazyDataSource, type ScrollProps } from '@core';
 import { useDebounceFn } from './useDebounceFn';
 import { useThrottle } from './useThrottle';
 
@@ -10,6 +10,13 @@ export interface VirtualLazyScrollProps<T=unknown> extends ScrollProps<T, React.
   onScroll?: (value: number) => void;
   render: (index: number, datum: any) => ReactNode;
   renderLoading?: (index: number) => ReactNode;
+  /**
+   * Opt-in data source (see `useLazyDataSource`). When present the list reads
+   * its rows from the source and reports its viewport to it, instead of
+   * rendering the `data`/`datasets` props. `onLoad`/`onHide` fire either way,
+   * so existing observers keep working.
+   */
+  source?: LazyDataSource<T>;
 }
 
 const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
@@ -27,6 +34,7 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
   dynamicSizes = {},
   data,
   datasets,
+  source,
   onLoad,
   onHide,
   onScroll,
@@ -46,6 +54,9 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
 
   // Track previous range for onHide callback
   const prevRangeRef = useRef<{ startIndex: number; endIndex: number } | null>(null);
+
+  // Last viewport reported to `source`, so we never re-send an unchanged range.
+  const lastViewportRef = useRef<string | null>(null);
 
   // Use refs to avoid stale closures
   const internalDynamicSizesRef = useRef(internalDynamicSizes);
@@ -102,13 +113,30 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
     return datasetsEnsured.sort((a, b) => a.startingIndex - b.startingIndex);
   }, [datasets, data, shouldSortDatasets]);
 
+  // Re-render when the source caches new rows. Deliberately not
+  // useSyncExternalStore: the package still supports React 17.
+  const [sourceVersion, setSourceVersion] = useState(0);
+  useEffect(() => {
+    if (!source) return;
+    setSourceVersion(source.getVersion());
+    return source.subscribe(() => setSourceVersion(source.getVersion()));
+  }, [source]);
+
   const finalArray = useMemo(() => {
+    // peek() is synchronous by contract, so the render path stays sync even
+    // when the rows are actually spilled to IndexedDB.
+    if (source) {
+      return source.peek(startIndex, endIndex);
+    }
     return utils.fillAndFlattenDatasets({
       orderedDatasets,
       startIndex,
       endIndex,
     });
-  }, [orderedDatasets, startIndex, endIndex]);
+    // sourceVersion looks unused to the linter, but peek() reads mutable cache
+    // state — the version is what tells this memo the rows changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, sourceVersion, orderedDatasets, startIndex, endIndex]);
 
   const handleScroll = useCallback(() => {
     if (!scrollOuterRef.current || isUpdatingRef.current) return;
@@ -126,6 +154,16 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
     const nextScrollMargin = scrollOuterRef.current[scrollProp] - resolved.scrollTopPadding;
     setScrollMargin(nextScrollMargin)
     setScrollLength(resolved.totalItemHeight - nextScrollMargin);
+
+    // Keyed separately from the startIndex/endIndex comparison below so the
+    // very first viewport still reaches the source when it resolves to 0..0.
+    if (source) {
+      const viewportKey = `${resolved.startIndex}:${resolved.endIndex}`;
+      if (lastViewportRef.current !== viewportKey) {
+        lastViewportRef.current = viewportKey;
+        void source.setViewport(resolved.startIndex, resolved.endIndex);
+      }
+    }
 
     if (resolved.startIndex !== startIndex || resolved.endIndex !== endIndex) {
       const prevRange = prevRangeRef.current;
@@ -160,7 +198,24 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
         onLoad({ startIndex: resolved.startIndex, endIndex: resolved.endIndex });
       }
     }
-  }, [scrollProp, clientLengthProp, estimatedItemSize, totalItems, itemBuffer, startIndex, endIndex, onLoad, onHide]);
+  }, [scrollProp, clientLengthProp, estimatedItemSize, totalItems, itemBuffer, startIndex, endIndex, onLoad, onHide, source]);
+
+  // A swapped source starts with an empty cache and its own viewport, so the
+  // remembered key has to be cleared and the range re-reported -- otherwise the
+  // list stays blank until the user happens to scroll somewhere new.
+  const sourceSettledRef = useRef(false);
+  useEffect(() => {
+    // The first mount already reports its viewport through the normal scroll
+    // path; re-running it here would emit a second onLoad for the same range.
+    if (!sourceSettledRef.current) {
+      sourceSettledRef.current = true;
+      return;
+    }
+    lastViewportRef.current = null;
+    if (source) handleScroll();
+    // Only the source swap matters; handleScroll is rebuilt on every range change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
 
   // Effect to trigger handleScroll when dynamic sizes change - but debounced
   const debouncedHandleScrollForSizes = useDebounceFn(handleScroll, 16); // ~60fps

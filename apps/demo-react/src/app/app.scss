@@ -216,17 +216,11 @@ body {
   .item-preview {
     margin-top: 0.5rem;
     
-    .preview-line {
-      height: 8px;
-      background-color: #e2e8f0;
-      border-radius: 4px;
-      margin-bottom: 8px;
-      
-      &:nth-child(1) { width: 100%; }
-      &:nth-child(2) { width: 85%; }
-      &:nth-child(3) { width: 70%; }
-      &:nth-child(4) { width: 90%; }
-      &:nth-child(5) { width: 60%; }
+    .preview-text {
+      margin: 0;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #64748b;
     }
   }
 }
@@ -314,6 +308,7 @@ body {
 .loading-spinner {
   width: 24px;
   height: 24px;
+  flex: 0 0 auto;
   border: 3px solid #e2e8f0;
   border-top-color: #6366f1;
   border-radius: 50%;

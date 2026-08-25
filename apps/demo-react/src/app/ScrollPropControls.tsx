@@ -170,7 +170,7 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
                     id="minItemSize"
                     type="range"
                     min="0"
-                    max="100"
+                    max="400"
                     step="5"
                     value={localProps.minItemSize}
                     onChange={(e) => handleChange('minItemSize', parseInt(e.target.value))}

@@ -6,15 +6,17 @@ import {
 } from '@lazy-virtual-scroll/core';
 import { 
   MockDataItem,
-  loadDatasetWithDelay
+  loadDatasetWithDelay,
+  getLoremText
 } from '@lazy-virtual-scroll/shared-mock';
 import ScrollPropControls from './ScrollPropControls';
 import './app.scss';
 
-const App: React.FC = () => {
+const useVirtualListDemo = (initialProps: Partial<ScrollProps> = {}) => {
   const [scrollProps, setScrollProps] = useState<ScrollProps>({
     totalItems: 300,
     ...defaultScrollProps,
+    ...initialProps
   });
   const [openItems, setOpenItems] = useState<{ [itemIndex: string]: number }>({});
   const [loadedDatasets, setLoadedDatasets] = useState<Dataset[]>([]);
@@ -122,6 +124,101 @@ const App: React.FC = () => {
     return loadedIndexes.size;
   }, [loadedDatasets]);
 
+  return {
+    scrollProps,
+    setScrollProps,
+    openItems,
+    handleToggleExpand,
+    formattedDatasets,
+    handleLoad,
+    handleHide,
+    uniqueLoadedItemsCount
+  };
+};
+
+const App: React.FC = () => {
+  const verticalDemo = useVirtualListDemo({ direction: 'column' });
+  const horizontalDemo = useVirtualListDemo({ direction: 'row', itemSize: 250 });
+
+  const renderItem = (demo: ReturnType<typeof useVirtualListDemo>, style?: React.CSSProperties) => (index: number, item: MockDataItem & { showCount: number }) => {
+    return (
+      <div className={`item${(index in demo.openItems) ? ' expanded' : ''}`} style={style}>
+        <div className="item-header">
+          <div className="item-title">
+            {item.name}
+            <span className="show-count-badge">Shown: {item.showCount}x</span>
+          </div>
+          <div className="item-actions">
+            <button 
+              className="expand-button" 
+              onClick={(e) => {
+                e.stopPropagation();
+                demo.handleToggleExpand(index);
+              }}
+            >
+              {item.isExpanded ? '▲' : '▼'}
+            </button>
+          </div>
+        </div>
+        
+        {item.isExpanded && (
+          <div className="item-content"
+            style={{
+              height: `${demo.openItems[index]}px`,
+              minHeight: `${demo.openItems[index]}px`,
+            }}
+          >
+            <div className="item-details">
+              <div className="item-section">
+                <h4>Item Details</h4>
+                <p>ID: <strong>{index}</strong></p>
+                <p>Size: <strong>{demo.openItems[index]}px</strong></p>
+                <p>Type: <strong>Expandable</strong></p>
+              </div>
+              <div className="item-section">
+                <h4>Content Preview</h4>
+                <div className="item-preview">
+                  <p className="preview-text">{getLoremText(index)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderLoading = (style?: React.CSSProperties) => (index: number) => (
+    <div className="item" style={style}>
+      <div className="item-header">
+        <div className="item-title">
+          <div className="loading-content">
+            <div className="loading-spinner"></div>
+            <span>Loading item {index}...</span>
+            <div className="loading-progress">
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill"
+                  style={{
+                    width: '50%'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="item-actions">
+          <button 
+            className="expand-button" 
+            style={{visibility: 'hidden'}}
+          >
+            <span>▼</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -129,128 +226,92 @@ const App: React.FC = () => {
           <div className="logo">
             <span className="logo-text">Lazy<span className="highlight">Virtual</span>Scroll</span>
           </div>
-          <span className="version">React Demo v1.0.0</span>
+          <span className="version">React Demo v1.1.0</span>
         </div>
       </header>
       
       <main className="app-content">
-        <ScrollPropControls scrollProps={scrollProps} onChange={setScrollProps} />
         
         <div className="demo-section">
           <h1>Lazy Virtual List - React Example</h1>
           <p className="subtitle">Efficient rendering of large datasets with dynamic sizing and lazy loading</p>
           
+          <h2>Vertical Scroll</h2>
+          <ScrollPropControls scrollProps={verticalDemo.scrollProps} onChange={verticalDemo.setScrollProps} />
           <div className="demo-container">
             <LazyVirtualScroll
               className="demo"
-              onLoad={handleLoad}
-              onHide={handleHide}
-              datasets={formattedDatasets}
-              totalItems={scrollProps.totalItems}
+              onLoad={verticalDemo.handleLoad}
+              onHide={verticalDemo.handleHide}
+              datasets={verticalDemo.formattedDatasets}
+              totalItems={verticalDemo.scrollProps.totalItems}
               itemSize={65}
-              itemBuffer={scrollProps.itemBuffer}
-              autoDetectSizes={scrollProps.autoDetectSizes}
-              dynamicSizes={openItems}
-              scrollDebounce={scrollProps.scrollDebounce}
-              scrollThrottle={scrollProps.scrollThrottle}
-              sortDatasets={scrollProps.sortDatasets}
-              minItemSize={scrollProps.minItemSize}
-              scrollStart={scrollProps.scrollStart}
-              renderLoading={(index: number) => (
-                <div className="item">
-                  <div className="item-header">
-                    <div className="item-title">
-                      <div className="loading-content">
-                        <div className="loading-spinner"></div>
-                        <span>Loading item {index}...</span>
-                        <div className="loading-progress">
-                          <div className="progress-bar">
-                            <div 
-                              className="progress-fill"
-                              style={{
-                                width: '50%'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="item-actions">
-                      <button 
-                        className="expand-button" 
-                        style={{visibility: 'hidden'}}
-                      >
-                        <span>▼</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              render={(index: number, item: MockDataItem & { showCount: number }) => {
-                // Just render the regular item, loading is handled by renderLoading
-
-                return (
-                <div className={`item${(index in openItems) ? ' expanded' : ''}`}>
-                  <div className="item-header">
-                    <div className="item-title">
-                      {item.name}
-                      <span className="show-count-badge">Shown: {item.showCount}x</span>
-                    </div>
-                    <div className="item-actions">
-                      <button 
-                        className="expand-button" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleExpand(index);
-                        }}
-                      >
-                        {item.isExpanded ? '▲' : '▼'}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {item.isExpanded && (
-                    <div className="item-content"
-                      style={{
-                        height: `${openItems[index]}px`,
-                        minHeight: `${openItems[index]}px`,
-                      }}
-                    >
-                      <div className="item-details">
-                        <div className="item-section">
-                          <h4>Item Details</h4>
-                          <p>ID: <strong>{index}</strong></p>
-                          <p>Size: <strong>{openItems[index]}px</strong></p>
-                          <p>Type: <strong>Expandable</strong></p>
-                        </div>
-                        <div className="item-section">
-                          <h4>Content Preview</h4>
-                          <div className="item-preview">
-                            {[1, 2, 3, 4, 5].map(i => (
-                              <div key={i} className="preview-line"></div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                );
-              }}
+              itemBuffer={verticalDemo.scrollProps.itemBuffer}
+              autoDetectSizes={verticalDemo.scrollProps.autoDetectSizes}
+              dynamicSizes={verticalDemo.openItems}
+              scrollDebounce={verticalDemo.scrollProps.scrollDebounce}
+              scrollThrottle={verticalDemo.scrollProps.scrollThrottle}
+              sortDatasets={verticalDemo.scrollProps.sortDatasets}
+              minItemSize={verticalDemo.scrollProps.minItemSize}
+              scrollStart={verticalDemo.scrollProps.scrollStart}
+              direction={verticalDemo.scrollProps.direction}
+              renderLoading={renderLoading()}
+              render={renderItem(verticalDemo)}
             />
           </div>
           
           <div className="stats-panel">
             <div className="stat">
-              <div className="stat-value">{Object.keys(openItems).length}</div>
+              <div className="stat-value">{Object.keys(verticalDemo.openItems).length}</div>
               <div className="stat-label">Expanded Items</div>
             </div>
             <div className="stat">
-              <div className="stat-value">{uniqueLoadedItemsCount}</div>
+              <div className="stat-value">{verticalDemo.uniqueLoadedItemsCount}</div>
               <div className="stat-label">Loaded Items</div>
             </div>
             <div className="stat">
-              <div className="stat-value">{scrollProps.totalItems}</div>
+              <div className="stat-value">{verticalDemo.scrollProps.totalItems}</div>
+              <div className="stat-label">Total Items</div>
+            </div>
+          </div>
+
+          <div style={{ height: '50px' }}></div>
+
+          <h2>Horizontal Scroll</h2>
+          <ScrollPropControls scrollProps={horizontalDemo.scrollProps} onChange={horizontalDemo.setScrollProps} />
+          <div className="demo-container horizontal" style={{ height: '300px' }}>
+            <LazyVirtualScroll
+              className="demo"
+              onLoad={horizontalDemo.handleLoad}
+              onHide={horizontalDemo.handleHide}
+              datasets={horizontalDemo.formattedDatasets}
+              totalItems={horizontalDemo.scrollProps.totalItems}
+              itemSize={horizontalDemo.scrollProps.itemSize}
+              itemBuffer={horizontalDemo.scrollProps.itemBuffer}
+              autoDetectSizes={horizontalDemo.scrollProps.autoDetectSizes}
+              dynamicSizes={horizontalDemo.openItems}
+              scrollDebounce={horizontalDemo.scrollProps.scrollDebounce}
+              scrollThrottle={horizontalDemo.scrollProps.scrollThrottle}
+              sortDatasets={horizontalDemo.scrollProps.sortDatasets}
+              minItemSize={horizontalDemo.scrollProps.minItemSize}
+              scrollStart={horizontalDemo.scrollProps.scrollStart}
+              direction={horizontalDemo.scrollProps.direction}
+              renderLoading={renderLoading({ width: 250, height: '100%', borderBottom: 'none', borderRight: '1px solid #e2e8f0' })}
+              render={renderItem(horizontalDemo, { width: 250, height: '100%', borderBottom: 'none', borderRight: '1px solid #e2e8f0' })}
+            />
+          </div>
+          
+          <div className="stats-panel">
+            <div className="stat">
+              <div className="stat-value">{Object.keys(horizontalDemo.openItems).length}</div>
+              <div className="stat-label">Expanded Items</div>
+            </div>
+            <div className="stat">
+              <div className="stat-value">{horizontalDemo.uniqueLoadedItemsCount}</div>
+              <div className="stat-label">Loaded Items</div>
+            </div>
+            <div className="stat">
+              <div className="stat-value">{horizontalDemo.scrollProps.totalItems}</div>
               <div className="stat-label">Total Items</div>
             </div>
           </div>

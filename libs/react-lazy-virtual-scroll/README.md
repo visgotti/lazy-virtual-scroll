@@ -1,9 +1,7 @@
- # React Lazy Virtual Scroll
+# React Lazy Virtual Scroll
 
 [![npm version](https://img.shields.io/npm/v/@lazy-virtual-scroll/react.svg)](https://www.npmjs.com/package/@lazy-virtual-scroll/react)
-[![License: MIT](https://img.shields.io/badge/License-MIT## Running unit tests
-
-Run `nx test @lazy-virtual-scroll/react` to execute the unit tests via [Vitest](https://vitest.dev()).ue.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 A highly performant virtualized list component for React that efficiently renders large datasets with dynamic sizing, lazy loading, and bi-directional scrolling support.
 
@@ -28,6 +26,18 @@ yarn add @lazy-virtual-scroll/react
 
 # pnpm
 pnpm add @lazy-virtual-scroll/react
+```
+
+## Imports
+
+```jsx
+// default export, or the equivalent named export
+import LazyVirtualScroll from '@lazy-virtual-scroll/react';
+import { LazyVirtualScroll } from '@lazy-virtual-scroll/react';
+
+// prop type, plus the core types and helpers, which this package re-exports
+import type { VirtualLazyScrollProps, Dataset, LoadEventPayload, ScrollProps } from '@lazy-virtual-scroll/react';
+import { resolveIndexes, defaultScrollProps, utils } from '@lazy-virtual-scroll/react';
 ```
 
 ## Basic Usage
@@ -85,7 +95,7 @@ const MyList = () => {
 
 ```jsx
 import React, { useState } from 'react';
-import LazyVirtualScroll from 'react-lazy-virtual-scroll';
+import LazyVirtualScroll from '@lazy-virtual-scroll/react';
 
 const AdvancedExample = () => {
   const [items] = useState(Array.from({ length: 10000 }, (_, i) => ({ 
@@ -262,9 +272,9 @@ const handleScroll = (scrollPosition) => {
 |------|------|---------|-------------|
 | `totalItems` | `number` | *(required)* | Total number of items in the list |
 | `itemSize` | `number` | *(required)* | Base height/width of each item in pixels |
-| `data` | `any[]` | `[]` | Array of data items to render |
-| `datasets` | `Dataset[]` | `[]` | Alternative to `data` for fragmented datasets |
-| `render` | `(index: number, item: any) => ReactNode` | *(required)* | Function to render each item |
+| `data` | `any[]` | `undefined` | Array of data items to render. Ignored when `datasets` is supplied. |
+| `datasets` | `Dataset[]` | `undefined` | Alternative to `data` for fragmented datasets |
+| `render` | `(index: number, datum: any) => ReactNode` | *(required)* | Function to render each item |
 | `renderLoading` | `(index: number) => ReactNode` | `undefined` | Function to render loading state |
 | `direction` | `'row' \| 'column'` | `'column'` | Scroll direction |
 | `itemBuffer` | `number` | `3` | Number of items to render outside visible area |
@@ -273,13 +283,13 @@ const handleScroll = (scrollPosition) => {
 | `scrollStart` | `number` | `0` | Initial scroll position |
 | `dynamicSizes` | `{ [itemIndex: string]: number }` | `{}` | Manual size overrides for specific items |
 | `autoDetectSizes` | `boolean` | `false` | Automatically detect item sizes |
-| `minItemSize` | `number` | `0` | Minimum size for dynamically sized items |
+| `minItemSize` | `number` | `0` | Floor applied to measured sizes when `autoDetectSizes` is on |
 | `sortDatasets` | `boolean` | `true` | Automatically sort datasets by startingIndex |
 | `scrollOuterStyleOverrides` | `React.CSSProperties` | `{}` | Custom styles for the outer scroll container |
 | `scrollInnerStyleOverrides` | `React.CSSProperties` | `{}` | Custom styles for the inner scroll container |
-| `className` | `string` | `''` | Additional class name for the outer container |
+| `className` | `string` | `undefined` | Appended to the outer container's `scroll-outer` class |
 
-## Callbacks
+## Callback Reference
 
 | Callback | Type | Description |
 |----------|------|-------------|
@@ -429,7 +439,7 @@ For optimal performance with large lists:
 
 ## Running unit tests
 
-Run `nx test react-lazy-virtual-scroll` to execute the unit tests via [Vitest](https://vitest.dev/).
+Run `nx test @lazy-virtual-scroll/react` to execute the unit tests via [Vitest](https://vitest.dev/).
 
 ## License
 

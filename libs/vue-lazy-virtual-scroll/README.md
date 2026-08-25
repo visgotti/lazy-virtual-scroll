@@ -1,20 +1,6 @@
 # Vue Lazy Virtual Scroll
 
-[![npm version](https://img.shields.io/npm/v/@lazy-virt## Advanced Usage with Dynamic Sizing
-
-```vue
-<template>
-  <div style="height: 500px; width: 100%">
-    <LazyVirtualScroll
-      :totalItems="items.length"
-      :itemSize="50"
-      :data="items"
-      :autoDetectSizes="true"
-      :dynamicSizes="expandedItems"
-      :scrollDebounce="100"
-      direction="column"
-      @load="handleLoad"
-    >svg)](https://www.npmjs.com/package/@lazy-virtual-scroll/vue)
+[![npm version](https://img.shields.io/npm/v/@lazy-virtual-scroll/vue.svg)](https://www.npmjs.com/package/@lazy-virtual-scroll/vue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance virtualized list component for Vue 3 that efficiently renders large datasets with dynamic sizing, lazy loading, and bi-directional scrolling support.
@@ -42,6 +28,15 @@ yarn add @lazy-virtual-scroll/vue
 pnpm add @lazy-virtual-scroll/vue
 ```
 
+## Imports
+
+The component is the package's default export; the types are named exports.
+
+```js
+import LazyVirtualScroll from '@lazy-virtual-scroll/vue';
+import type { Dataset, LoadEventPayload, ScrollProps } from '@lazy-virtual-scroll/vue';
+```
+
 ## Basic Usage
 
 ```vue
@@ -57,41 +52,6 @@ pnpm add @lazy-virtual-scroll/vue
       <template #default="{ item, index }">
         <div class="item">
           {{ item.text }}
-        </div>
-      </template>
-      <template #loading="{ index }">
-        <div class="item loading">
-          Loading item {{ index }}...
-        </div>
-      </template>
-    </LazyVirtualScroll>
-  </div>
-</template>
-
-<script setup>
-import { ref } from 'vue';
-import LazyVirtualScroll from 'vue-lazy-virtual-scroll';
-
-const items = ref(Array.from({ length: 10000 }, (_, i) => ({ 
-  id: i, 
-  text: `Item ${i}` 
-})));
-
-## Basic Usage
-
-```vue
-<template>
-  <div style="height: 500px; width: 100%">
-    <LazyVirtualScroll
-      :totalItems="items.length"
-      :itemSize="50"
-      :data="items"
-      @load="handleLoad"
-      @hide="handleHide"
-    >
-      <template #default="{ item, index }">
-        <div class="item">
-          {{ item ? item.text : 'Loading...' }}
         </div>
       </template>
       <template #loading="{ index }">
@@ -179,7 +139,7 @@ The loading slot is used to render items that are still loading:
 **Slot Props:**
 - `index` (number): The index of the loading item
 
-If the `#loading` slot is not provided, the `#default` slot will be used with `item` as `undefined`.
+The component renders the `#loading` slot *instead of* `#default` whenever the item at that index has not been loaded yet. If you do not provide a `#loading` slot, those rows render empty — the `#default` slot is **not** called with an `undefined` item.
 
 ## Events
 
@@ -306,7 +266,7 @@ const handleScroll = (scrollPosition) => {
 
 <script setup>
 import { ref } from 'vue';
-import LazyVirtualScroll from 'vue-lazy-virtual-scroll';
+import LazyVirtualScroll from '@lazy-virtual-scroll/vue';
 
 const items = ref(Array.from({ length: 10000 }, (_, i) => ({ 
   id: i, 
@@ -365,23 +325,23 @@ const handleHide = ({ startIndex, endIndex }) => {
 |------|------|---------|-------------|
 | `totalItems` | `number` | *(required)* | Total number of items in the list |
 | `itemSize` | `number` | *(required)* | Base height/width of each item in pixels |
-| `data` | `any[]` | `[]` | Array of data items to render |
-| `datasets` | `Dataset[]` | `[]` | Alternative to `data` for fragmented datasets |
+| `data` | `any[]` | `undefined` | Array of data items to render. Ignored when `datasets` is supplied. |
+| `datasets` | `Dataset[]` | `undefined` | Alternative to `data` for fragmented datasets |
 | `direction` | `'row' \| 'column'` | `'column'` | Scroll direction |
 | `itemBuffer` | `number` | `3` | Number of items to render outside visible area |
 | `scrollThrottle` | `number` | `0` | Throttle scroll events (milliseconds) |
 | `scrollDebounce` | `number` | `0` | Debounce scroll events (milliseconds) |
 | `scrollStart` | `number` | `0` | Initial scroll position |
-| `dynamicSizes` | `{ [itemIndex: string]: number }` | `{}` | Manual size overrides for specific items |
+| `dynamicSizes` | `{ [itemIndex: string]: number }` | `null` | Manual size overrides for specific items. When `autoDetectSizes` is `true` this is only used as the initial seed — measured sizes take over afterwards. |
 | `autoDetectSizes` | `boolean` | `false` | Automatically detect item sizes |
-| `minItemSize` | `number` | `0` | Minimum size for dynamically sized items |
+| `minItemSize` | `number` | `0` | Floor applied to measured sizes when `autoDetectSizes` is on |
 | `sortDatasets` | `boolean` | `true` | Automatically sort datasets by startingIndex |
-| `outerMaxLengthCssValue` | `string` | `'100%'` | Maximum length CSS value for the outer container |
-| `outerMinLengthCssValue` | `string` | `'100%'` | Minimum length CSS value for the outer container |
-| `outerLengthCssValue` | `string` | `'100%'` | Length CSS value for the outer container |
-| `listItemStyle` | `{ [key: string]: string }` | `{}` | Custom styles for list items |
+| `outerMaxLengthCssValue` | `string` | `'100%'` | `max-height` (column) / `max-width` (row) of the outer container |
+| `outerMinLengthCssValue` | `string` | `'100%'` | `min-height` (column) / `min-width` (row) of the outer container |
+| `outerLengthCssValue` | `string` | `'100%'` | `height` (column) / `width` (row) of the outer container |
+| `listItemStyle` | `{ [key: string]: string }` | `{}` | Extra styles merged onto each item wrapper (on top of `display: inline-block`). Only applied when `autoDetectSizes` is `true`. |
 
-## Events
+## Event Reference
 
 | Event | Payload | Description |
 |-------|---------|-------------|
@@ -389,7 +349,7 @@ const handleHide = ({ startIndex, endIndex }) => {
 | `@hide` | `{ startIndex: number; endIndex: number }` | Emitted when items go out of view and are hidden |
 | `@scroll` | `number` | Emitted on scroll with current scroll position |
 
-## Slots
+## Slot Reference
 
 | Name | Props | Description |
 |------|-------|-------------|
@@ -412,7 +372,7 @@ const handleHide = ({ startIndex, endIndex }) => {
     >
       <template #default="{ item, index }">
         <div class="item">
-          Item {{ index }} {{ item ? `- ${item.text}` : '(Loading...)' }}
+          Item {{ index }} - {{ item.text }}
         </div>
       </template>
       <template #loading="{ index }">
@@ -525,59 +485,6 @@ The component supports dynamic item sizes in two ways:
    >
      <!-- slots -->
    </LazyVirtualScroll>
-   ```
-
-## Performance Optimization
-
-For optimal performance with large lists:
-
-1. Use both `scrollThrottle` and `scrollDebounce` to limit scroll event processing:
-   ```vue
-   <LazyVirtualScroll
-     :scrollThrottle="16"  <!-- ~60fps -->
-     :scrollDebounce="100" <!-- Final update after scrolling stops -->
-     <!-- ...other props -->
-   >
-     <!-- slots -->
-   </LazyVirtualScroll>
-   ```
-
-2. Keep component renders lightweight by using `v-memo` for list items:
-   ```vue
-   <template #default="{ item, index }">
-     <div v-memo="[item.id, item.text]" class="item">
-       {{ item.text }}
-     </div>
-   </template>
-   ```
-
-## Dynamic Sizing
-
-The component supports dynamic item sizes in two ways:
-
-1. **Manual Size Specification**:
-   ```vue
-   <script setup>
-   const dynamicSizes = ref({
-     5: 100,  // Item at index 5 has height 100px
-     10: 200, // Item at index 10 has height 200px
-   });
-   </script>
-   
-   <template>
-     <LazyVirtualScroll
-       :dynamicSizes="dynamicSizes"
-       <!-- ...other props -->
-     />
-   </template>
-   ```
-
-2. **Automatic Size Detection**:
-   ```vue
-   <LazyVirtualScroll
-     :autoDetectSizes="true"
-     <!-- ...other props -->
-   />
    ```
 
 ## Performance Optimization

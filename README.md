@@ -144,8 +144,8 @@ This workspace is powered by [Nx](https://nx.dev).
 npx nx run-many -t build
 
 # Build specific package
-npx nx build react-lazy-virtual-scroll
-npx nx build vue-lazy-virtual-scroll
+npx nx build @lazy-virtual-scroll/react
+npx nx build @lazy-virtual-scroll/vue
 npx nx build core
 ```
 
@@ -156,8 +156,8 @@ npx nx build core
 npx nx run-many -t test
 
 # Test specific package
-npx nx test react-lazy-virtual-scroll
-npx nx test vue-lazy-virtual-scroll
+npx nx test @lazy-virtual-scroll/react
+npx nx test @lazy-virtual-scroll/vue
 npx nx test core
 ```
 

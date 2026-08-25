@@ -345,7 +345,7 @@ const App = () => {
           border-bottom: 1px solid #eee;
           box-sizing: border-box;
         ">
-          {{ item ? item.content : 'Loading...' }}
+          {{ item.content }}
         &lt;/div>
       &lt;/template>
       &lt;template #loading="{ index }">
@@ -480,53 +480,119 @@ const handleHide = ({ startIndex, endIndex }) => {
                     <td><code>render</code></td>
                     <td>function</td>
                     <td>required</td>
-                    <td>Function to render each item: <code>(index, item) => ReactNode</code></td>
+                    <td>Renders each item: <code>(index, datum) =&gt; ReactNode</code></td>
                   </tr>
                   <tr>
                     <td><code>renderLoading</code></td>
                     <td>function</td>
-                    <td>optional</td>
-                    <td>Function to render loading state: <code>(index) => ReactNode</code></td>
+                    <td>undefined</td>
+                    <td>Renders an item that has not loaded yet: <code>(index) =&gt; ReactNode</code>. Without it, <code>render</code> is called with an undefined datum.</td>
+                  </tr>
+                  <tr>
+                    <td><code>data</code></td>
+                    <td>any[]</td>
+                    <td>undefined</td>
+                    <td>Array of data items to render. Ignored when <code>datasets</code> is supplied.</td>
+                  </tr>
+                  <tr>
+                    <td><code>datasets</code></td>
+                    <td>Dataset[]</td>
+                    <td>undefined</td>
+                    <td>Fragmented data as <code>{ startingIndex, data }</code> chunks</td>
                   </tr>
                   <tr>
                     <td><code>onLoad</code></td>
                     <td>function</td>
-                    <td>optional</td>
-                    <td>Callback when items become visible: <code>({startIndex, endIndex}) => void</code></td>
+                    <td>undefined</td>
+                    <td>Called when the visible range changes: <code>({startIndex, endIndex}) =&gt; void</code></td>
                   </tr>
                   <tr>
                     <td><code>onHide</code></td>
                     <td>function</td>
-                    <td>optional</td>
-                    <td>Callback when items go out of view: <code>({startIndex, endIndex}) => void</code></td>
+                    <td>undefined</td>
+                    <td>Called with the range that just scrolled out of view: <code>({startIndex, endIndex}) =&gt; void</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>onScroll</code></td>
+                    <td>function</td>
+                    <td>undefined</td>
+                    <td>Called on scroll with the current offset: <code>(value) =&gt; void</code></td>
                   </tr>
                   <tr>
                     <td><code>direction</code></td>
-                    <td>string</td>
+                    <td>'row' | 'column'</td>
                     <td>'column'</td>
-                    <td>Scroll direction ('column' or 'row')</td>
+                    <td>Scroll direction</td>
                   </tr>
                   <tr>
                     <td><code>itemBuffer</code></td>
                     <td>number</td>
                     <td>3</td>
-                    <td>Number of items to render outside visible area</td>
+                    <td>Number of items to render outside the visible area</td>
+                  </tr>
+                  <tr>
+                    <td><code>scrollStart</code></td>
+                    <td>number</td>
+                    <td>0</td>
+                    <td>Initial scroll offset applied on mount</td>
+                  </tr>
+                  <tr>
+                    <td><code>scrollThrottle</code></td>
+                    <td>number</td>
+                    <td>0</td>
+                    <td>Throttle scroll handling (ms)</td>
+                  </tr>
+                  <tr>
+                    <td><code>scrollDebounce</code></td>
+                    <td>number</td>
+                    <td>0</td>
+                    <td>Debounce scroll handling (ms). Should be &ge; <code>scrollThrottle</code>.</td>
                   </tr>
                   <tr>
                     <td><code>autoDetectSizes</code></td>
                     <td>boolean</td>
                     <td>false</td>
-                    <td>Automatically detect item sizes</td>
+                    <td>Measure rendered items with a ResizeObserver</td>
                   </tr>
                   <tr>
                     <td><code>dynamicSizes</code></td>
                     <td>object</td>
                     <td>{}</td>
-                    <td>Manual size overrides for specific items</td>
+                    <td>Manual size overrides, keyed by item index</td>
+                  </tr>
+                  <tr>
+                    <td><code>minItemSize</code></td>
+                    <td>number</td>
+                    <td>0</td>
+                    <td>Floor applied to measured sizes when <code>autoDetectSizes</code> is on</td>
+                  </tr>
+                  <tr>
+                    <td><code>sortDatasets</code></td>
+                    <td>boolean</td>
+                    <td>true</td>
+                    <td>Sort <code>datasets</code> by <code>startingIndex</code> before use</td>
+                  </tr>
+                  <tr>
+                    <td><code>scrollOuterStyleOverrides</code></td>
+                    <td>React.CSSProperties</td>
+                    <td>{}</td>
+                    <td>Style overrides for the outer scroll container</td>
+                  </tr>
+                  <tr>
+                    <td><code>scrollInnerStyleOverrides</code></td>
+                    <td>React.CSSProperties</td>
+                    <td>{}</td>
+                    <td>Style overrides for the inner scroll container</td>
+                  </tr>
+                  <tr>
+                    <td><code>className</code></td>
+                    <td>string</td>
+                    <td>undefined</td>
+                    <td>Appended to the outer container's <code>scroll-outer</code> class</td>
                   </tr>
                 </tbody>
               </table>
-              <p>For more detailed documentation, please visit the <a href="https://github.com/visgotti/lazy-virtual-scroll/blob/main/libs/react-lazy-virtual-scroll/README.md" target="_blank">React component README</a>.</p>
+              <p>For more detailed documentation, please visit the <a href="https://github.com/visgotti/lazy-virtual-scroll/blob/master/libs/react-lazy-virtual-scroll/README.md" target="_blank">React component README</a>.</p>
             </div>
           </div>
           <div class="tab-pane fade" id="vue-doc" role="tabpanel">
@@ -556,45 +622,111 @@ const handleHide = ({ startIndex, endIndex }) => {
                   </tr>
                   <tr>
                     <td><code>data</code></td>
-                    <td>array</td>
-                    <td>[]</td>
-                    <td>Array of data items to render</td>
+                    <td>any[]</td>
+                    <td>undefined</td>
+                    <td>Array of data items to render. Ignored when <code>datasets</code> is supplied.</td>
                   </tr>
                   <tr>
-                    <td><code>@load</code></td>
-                    <td>event</td>
-                    <td>-</td>
-                    <td>Emitted when items become visible: <code>({startIndex, endIndex})</code></td>
-                  </tr>
-                  <tr>
-                    <td><code>@hide</code></td>
-                    <td>event</td>
-                    <td>-</td>
-                    <td>Emitted when items go out of view: <code>({startIndex, endIndex})</code></td>
+                    <td><code>datasets</code></td>
+                    <td>Dataset[]</td>
+                    <td>undefined</td>
+                    <td>Fragmented data as <code>{ startingIndex, data }</code> chunks</td>
                   </tr>
                   <tr>
                     <td><code>direction</code></td>
-                    <td>string</td>
+                    <td>'row' | 'column'</td>
                     <td>'column'</td>
-                    <td>Scroll direction ('column' or 'row')</td>
+                    <td>Scroll direction</td>
                   </tr>
                   <tr>
                     <td><code>itemBuffer</code></td>
                     <td>number</td>
                     <td>3</td>
-                    <td>Number of items to render outside visible area</td>
+                    <td>Number of items to render outside the visible area</td>
+                  </tr>
+                  <tr>
+                    <td><code>scrollStart</code></td>
+                    <td>number</td>
+                    <td>0</td>
+                    <td>Initial scroll offset applied on mount</td>
+                  </tr>
+                  <tr>
+                    <td><code>scrollThrottle</code></td>
+                    <td>number</td>
+                    <td>0</td>
+                    <td>Throttle scroll handling (ms)</td>
+                  </tr>
+                  <tr>
+                    <td><code>scrollDebounce</code></td>
+                    <td>number</td>
+                    <td>0</td>
+                    <td>Debounce scroll handling (ms). Should be &ge; <code>scrollThrottle</code>.</td>
                   </tr>
                   <tr>
                     <td><code>autoDetectSizes</code></td>
                     <td>boolean</td>
                     <td>false</td>
-                    <td>Automatically detect item sizes</td>
+                    <td>Measure rendered items with a ResizeObserver</td>
                   </tr>
                   <tr>
                     <td><code>dynamicSizes</code></td>
                     <td>object</td>
+                    <td>null</td>
+                    <td>Manual size overrides, keyed by item index</td>
+                  </tr>
+                  <tr>
+                    <td><code>minItemSize</code></td>
+                    <td>number</td>
+                    <td>0</td>
+                    <td>Floor applied to measured sizes when <code>autoDetectSizes</code> is on</td>
+                  </tr>
+                  <tr>
+                    <td><code>sortDatasets</code></td>
+                    <td>boolean</td>
+                    <td>true</td>
+                    <td>Sort <code>datasets</code> by <code>startingIndex</code> before use</td>
+                  </tr>
+                  <tr>
+                    <td><code>outerLengthCssValue</code></td>
+                    <td>string</td>
+                    <td>'100%'</td>
+                    <td><code>height</code> (column) / <code>width</code> (row) of the outer container</td>
+                  </tr>
+                  <tr>
+                    <td><code>outerMinLengthCssValue</code></td>
+                    <td>string</td>
+                    <td>'100%'</td>
+                    <td><code>min-height</code> / <code>min-width</code> of the outer container</td>
+                  </tr>
+                  <tr>
+                    <td><code>outerMaxLengthCssValue</code></td>
+                    <td>string</td>
+                    <td>'100%'</td>
+                    <td><code>max-height</code> / <code>max-width</code> of the outer container</td>
+                  </tr>
+                  <tr>
+                    <td><code>listItemStyle</code></td>
+                    <td>object</td>
                     <td>{}</td>
-                    <td>Manual size overrides for specific items</td>
+                    <td>Extra styles merged onto each item wrapper. Only applied when <code>autoDetectSizes</code> is on.</td>
+                  </tr>
+                  <tr>
+                    <td><code>@load</code></td>
+                    <td>event</td>
+                    <td>-</td>
+                    <td>Emitted when the visible range changes: <code>({startIndex, endIndex})</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>@hide</code></td>
+                    <td>event</td>
+                    <td>-</td>
+                    <td>Emitted with the range that just scrolled out of view: <code>({startIndex, endIndex})</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>@scroll</code></td>
+                    <td>event</td>
+                    <td>-</td>
+                    <td>Emitted on scroll with the current offset: <code>number</code></td>
                   </tr>
                 </tbody>
               </table>
@@ -620,7 +752,7 @@ const handleHide = ({ startIndex, endIndex }) => {
                   </tr>
                 </tbody>
               </table>
-              <p>For more detailed documentation, please visit the <a href="https://github.com/visgotti/lazy-virtual-scroll/blob/main/libs/vue-lazy-virtual-scroll/README.md" target="_blank">Vue component README</a>.</p>
+              <p>For more detailed documentation, please visit the <a href="https://github.com/visgotti/lazy-virtual-scroll/blob/master/libs/vue-lazy-virtual-scroll/README.md" target="_blank">Vue component README</a>.</p>
             </div>
           </div>
         </div>

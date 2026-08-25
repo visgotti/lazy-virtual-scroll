@@ -2,74 +2,99 @@
 
 A utility library providing mock data generation and loading simulation for testing and demonstrating the Lazy Virtual Scroll components.
 
+> **Internal package.** `shared-mock` is `private: true` and is not published to npm. Inside this
+> workspace it resolves through the `shared-mock` / `@lazy-virtual-scroll/shared-mock` tsconfig
+> path aliases.
+
 ## Overview
 
 This library provides utilities for generating mock datasets and simulating loading delays, useful for testing virtualized list components and creating realistic demo experiences.
 
 ## Features
 
-- **Mock Data Generation**: Generate large datasets with configurable properties
+- **Mock Data Generation**: Generate items and pre-chunked datasets
 - **Loading Simulation**: Simulate network delays for realistic loading experiences
 - **TypeScript Support**: Full type definitions included
-- **Configurable**: Customizable item properties and loading delays
 
 ## Usage
 
 ```typescript
-import { 
+import {
+  generateMockItems,
   generateMockDatasets,
   loadDatasetWithDelay,
-  type MockDataItem 
-} from '@lazy-virtual-scroll/shared-mock';
+  type MockDataItem
+} from 'shared-mock';
 
-// Generate a dataset starting at index 0 with 100 items
-const dataset = generateMockDatasets(0, 100);
+// 1000 items split into datasets of 25 -> 40 Dataset chunks
+const datasets = generateMockDatasets(1000, 25);
 
-// Simulate loading with a delay
+// Simulate loading one chunk of 50 items starting at index 0, with a 500ms delay
 const loadData = async () => {
-  try {
-    const dataset = await loadDatasetWithDelay(0, 50, 500); // 500ms delay
-    console.log('Loaded dataset:', dataset);
-  } catch (error) {
-    console.error('Failed to load:', error);
-  }
+  const dataset = await loadDatasetWithDelay(0, 50, 500);
+  console.log('Loaded dataset:', dataset);
 };
 ```
 
 ## API
 
-### `generateMockDatasets(startIndex: number, count: number): Dataset<MockDataItem>`
+### `generateMockItems(count: number, startIndex?: number): MockDataItem[]`
 
-Generates a mock dataset with the specified starting index and item count.
+Generates `count` mock items, named from `startIndex` onward.
 
 **Parameters:**
-- `startIndex`: The starting index for the dataset
 - `count`: Number of items to generate
+- `startIndex`: Index the first item's name is based on (default `0`)
 
-**Returns:** A `Dataset` object with mock data items
+### `generateMockDatasets(totalItems: number, itemsPerDataset?: number): Dataset[]`
 
-### `loadDatasetWithDelay(startIndex: number, count: number, delay?: number): Promise<Dataset<MockDataItem>>`
-
-Simulates loading a dataset with an optional delay.
+Splits `totalItems` items into contiguous `Dataset` chunks.
 
 **Parameters:**
-- `startIndex`: The starting index for the dataset
-- `count`: Number of items to generate  
-- `delay`: Optional delay in milliseconds (default: random between 100-800ms)
+- `totalItems`: Total number of items to generate across all datasets
+- `itemsPerDataset`: Chunk size (default `10`)
 
-**Returns:** A Promise that resolves to a `Dataset` object
+**Returns:** An array of `Dataset` objects covering `0 .. totalItems - 1`
+
+### `loadDatasetWithDelay(startingIndex: number, itemCount: number, delay?: number): Promise<Dataset<MockDataItem>>`
+
+Generates one dataset and resolves it after a delay.
+
+**Parameters:**
+- `startingIndex`: The starting index for the dataset
+- `itemCount`: Number of items to generate
+- `delay`: Delay in milliseconds (default: `getRandomLoadingDelay()`, i.e. 500–1500ms)
+
+### `getRandomLoadingDelay(): number`
+
+Returns a random delay between 500ms and 1500ms.
+
+### `createDelayedPromise<T>(data: T, delay?: number): Promise<T>`
+
+Resolves `data` after `delay` ms, defaulting to `getRandomLoadingDelay()`.
+
+### `createLoadingState(resolveTime?: number): LoadingState`
+
+Creates a loading tracker stamped with `Date.now()`. `resolveTime` defaults to
+`Date.now() + getRandomLoadingDelay()`.
+
+### `shouldResolveLoading(loadingState: LoadingState): boolean`
+
+Returns `true` once `Date.now()` has passed the state's `resolveTime`.
 
 ### Types
 
 ```typescript
 interface MockDataItem {
-  id: number;
   name: string;
-  description: string;
-  category: string;
-  value: number;
-  isActive: boolean;
-  createdAt: Date;
+  isExpanded: boolean;
+  loadingTime?: number;
+}
+
+interface LoadingState {
+  isLoading: boolean;
+  startTime: number;
+  resolveTime: number;
 }
 ```
 

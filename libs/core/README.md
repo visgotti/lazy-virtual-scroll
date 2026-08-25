@@ -11,11 +11,38 @@ The core library handles the complex calculations needed for virtual scrolling, 
 3. Managing the dataset structure and filling item arrays
 4. Handling dynamic item sizing
 
+## Exports
+
+`core` is `private: true` — it is never published on its own, it is bundled into
+`@lazy-virtual-scroll/react` and `@lazy-virtual-scroll/vue`. Inside this workspace it is imported
+through the `@core` (or `@lazy-virtual-scroll/core`) tsconfig path alias:
+
+```typescript
+import { resolveIndexes, defaultScrollProps, utils } from '@core';
+import type { Dataset, LoadEventPayload, ScrollProps } from '@core';
+```
+
+Consumers of the published packages reach the same values through the React entry point, which
+re-exports all of core:
+
+```typescript
+import { resolveIndexes, defaultScrollProps, utils } from '@lazy-virtual-scroll/react';
+```
+
+The Vue entry point re-exports only the types (`Dataset`, `LoadEventPayload`, `ScrollProps`), not
+the runtime helpers.
+
+`resolveIndexes`, `defaultScrollProps` and the types are top-level exports. Every helper below
+lives on the `utils` namespace object (`utils.fillAndFlattenDatasets(...)`), not at the top level.
+
 ## Key Functions
 
 ### `resolveIndexes`
 
 Calculates which items should be rendered based on the current scroll position and viewport size.
+`scrollTop`/`viewHeight` are the scroll offset and viewport length along the active axis, so for
+`direction: 'row'` you pass `scrollLeft`/`clientWidth`. The function itself is axis-agnostic and
+takes no `direction` or `minItemSize` argument.
 
 ```typescript
 function resolveIndexes(params: {
@@ -23,10 +50,8 @@ function resolveIndexes(params: {
   viewHeight: number;
   itemSize: number;
   totalItems: number;
-  itemBuffer?: number;
-  dynamicSizes?: { [key: number]: number };
-  direction?: 'row' | 'column';
-  minItemSize?: number;
+  itemBuffer: number;
+  dynamicSizes?: { [index: string]: number };  // default {}
 }): {
   startIndex: number;
   endIndex: number;
@@ -35,16 +60,83 @@ function resolveIndexes(params: {
 }
 ```
 
-### `fillAndFlattenDatasets`
+### `utils.fillAndFlattenDatasets`
 
-Populates an array with items from the provided datasets based on the calculated start and end indexes.
+Builds a dense `endIndex - startIndex + 1` array for the visible window, pulling items out of the
+provided datasets. Positions with no loaded data are `null`.
 
 ```typescript
 function fillAndFlattenDatasets(params: {
   orderedDatasets: Dataset[];
   startIndex: number;
   endIndex: number;
-}): any[]
+}): Array<any | null>
+```
+
+### `utils.flattenDatasets`
+
+Flattens datasets into a flat list of `{ itemIndex, itemData }` pairs.
+With `sortFirst` on (the default) the `datasets` array is sorted **in place**.
+
+```typescript
+function flattenDatasets<T = unknown>(
+  datasets: Dataset<T>[],
+  sortFirst?: boolean,   // default true
+): Array<{ itemIndex: number; itemData: T }>
+```
+
+### `utils.splitLoadEventBasedOnAlreadyLoaded`
+
+Splits a requested range into the sub-ranges that are not loaded yet, so you only fetch what is missing.
+Note: if every index in the range is already loaded, it returns the original range unsplit (`[event]`)
+rather than an empty array.
+
+```typescript
+function splitLoadEventBasedOnAlreadyLoaded(
+  event: LoadEventPayload,
+  isLoaded: (itemIndex: number) => boolean,
+): LoadEventPayload[]
+```
+
+### `utils.indexIsLoaded`
+
+Returns whether an index is covered by any of the datasets.
+
+```typescript
+function indexIsLoaded(itemIndex: number, datasets: Dataset[]): boolean
+```
+
+### `utils.mergeAdjacentDatasets`
+
+Merges datasets whose ranges touch or overlap into a smaller set of contiguous datasets.
+With `sortFirst` on (the default) the `datasets` array is sorted **in place**.
+
+```typescript
+function mergeAdjacentDatasets(
+  datasets: Dataset[],
+  sortFirst?: boolean,   // default true
+): Dataset[]
+```
+
+### `utils.scrollOuterStyle` / `utils.scrollInnerStyle`
+
+Build the inline style objects the React and Vue components apply to their scroll containers.
+
+```typescript
+function scrollOuterStyle(lengthProp: 'width' | 'height', overrides?: any): object
+
+function scrollInnerStyle(
+  scrollLength: number,
+  scrollMargin: number,
+  flexDirection: 'row' | 'column',
+  overrides?: any,
+): object
+```
+
+### `utils.capitalize`
+
+```typescript
+function capitalize(v: string): string
 ```
 
 ## Data Types
@@ -73,7 +165,31 @@ interface ScrollProps<T=unknown, CSSPropOverrides=any> {
 }
 ```
 
-### Dataset
+Not every field is wired up in both frameworks. `scrollOuterStyleOverrides` and
+`scrollInnerStyleOverrides` are React-only; the Vue component exposes
+`outerLengthCssValue` / `outerMinLengthCssValue` / `outerMaxLengthCssValue` / `listItemStyle`
+instead. See each package's README for the authoritative prop list.
+
+### defaultScrollProps
+
+A convenience constant of suggested starting values. **These are the demo's defaults, not the
+component defaults** — the React and Vue components each declare their own defaults (notably
+`scrollDebounce: 0` and `autoDetectSizes: false`), so passing `defaultScrollProps` in explicitly
+is the only way to get these values.
+
+```typescript
+const defaultScrollProps: Omit<ScrollProps, 'totalItems'> = {
+  itemSize: 65,
+  itemBuffer: 3,
+  scrollStart: 0,
+  scrollThrottle: 0,
+  scrollDebounce: 100,
+  minItemSize: 0,
+  autoDetectSizes: true,
+  direction: 'column',
+  sortDatasets: true,
+};
+```
 
 ### Dataset
 

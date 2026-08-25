@@ -5,7 +5,7 @@
         <div class="logo">
           <span class="logo-text">Lazy<span class="highlight">Virtual</span>Scroll</span>
         </div>
-        <span class="version">Vue Demo v1.0.0</span>
+        <span class="version">Vue Demo v1.1.0</span>
       </div>
     </header>
     

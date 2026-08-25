@@ -8,4 +8,6 @@ export default {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   coverageDirectory: '../../coverage/apps/demo-react',
+  // The demo has no specs; without this `nx run-many -t test` fails on it.
+  passWithNoTests: true,
 };

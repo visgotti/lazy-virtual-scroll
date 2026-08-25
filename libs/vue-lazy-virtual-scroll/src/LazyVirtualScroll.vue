@@ -136,7 +136,10 @@ if(dynamicSizes.value && autoDetectSizes.value) {
   }
 }
 const dynamicSizesRef = computed(() => {
-  return autoDetectSizes.value ? internalDynamicSizes.value : dynamicSizes.value;
+  // The prop defaults to null, and resolveIndexes does Object.keys() on this —
+  // only the default-param path guards undefined, so null has to be coalesced
+  // here or handleScroll throws whenever autoDetectSizes is off.
+  return autoDetectSizes.value ? internalDynamicSizes.value : (dynamicSizes.value ?? {});
 });
 
 watch([dynamicSizesRef, totalItems], () => {

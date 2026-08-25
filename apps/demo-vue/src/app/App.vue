@@ -10,111 +10,16 @@
     </header>
     
     <main class="app-content">
-      <ScrollPropControls v-model="scrollProps" />
       
       <div class="demo-section">
         <h1>Lazy Virtual List - Vue Example</h1>
         <p class="subtitle">Efficient rendering of large datasets with dynamic sizing and lazy loading</p>
         
-        <div class="demo-container">
-          <LazyVirtualScroll
-            class="demo"
-            @load="handleLoad"
-            @hide="handleHide"
-            :datasets="formattedDatasets"
-            :totalItems="scrollProps.totalItems"
-            :itemSize="scrollProps.itemSize"
-            :itemBuffer="scrollProps.itemBuffer"
-            :autoDetectSizes="scrollProps.autoDetectSizes"
-            :dynamicSizes="openItems"
-            :scrollDebounce="scrollProps.scrollDebounce"
-            :scrollThrottle="scrollProps.scrollThrottle"
-            :sortDatasets="scrollProps.sortDatasets"
-            :minItemSize="scrollProps.minItemSize"
-            :scrollStart="scrollProps.scrollStart"
-          >
-            <template #default="{ item, index }">
-              <!-- Regular item rendering - loading is handled by #loading slot -->
-              <div class="item" :class="{'expanded': index in openItems}">
-                <div class="item-header">
-                  <div class="item-title">
-                    {{ item.name }}
-                    <span class="show-count-badge">Shown: {{ item.showCount }}x</span>
-                  </div>
-                  <div class="item-actions">
-                    <button class="expand-button" @click.stop="handleToggleExpand(index)">
-                      <span v-if="item.isExpanded">▲</span>
-                      <span v-else>▼</span>
-                    </button>
-                  </div>
-                </div>
-                <div v-if="item.isExpanded" class="item-content"
-                  :style="{
-                    height: `${openItems[index]}px`,
-                    minHeight: `${openItems[index]}px`,
-                  }"
-                >
-                  <div class="item-details">
-                    <div class="item-section">
-                      <h4>Item Details</h4>
-                      <p>ID: <strong>{{ index }}</strong></p>
-                      <p>Size: <strong>{{ openItems[index] }}px</strong></p>
-                      <p>Type: <strong>Expandable</strong></p>
-                    </div>
-                    <div class="item-section">
-                      <h4>Content Preview</h4>
-                      <div class="item-preview">
-                        <div v-for="i in 5" :key="i" class="preview-line"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
-            <template #loading="{ index }">
-              <div class="item">
-                <div class="item-header">
-                  <div class="item-title">
-                    <div class="loading-content">
-                      <div class="loading-spinner"></div>
-                      <span>Loading item {{ index }}...</span>
-                      <div class="loading-progress">
-                        <div class="progress-bar">
-                          <div 
-                            class="progress-fill"
-                            :style="{
-                              width: '50%'
-                            }"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="item-actions">
-                    <button class="expand-button" style="visibility: hidden">
-                      <span>▼</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </LazyVirtualScroll>
-        </div>
-        
-        <div class="stats-panel">
-          <div class="stat">
-            <div class="stat-value">{{ Object.keys(openItems).length }}</div>
-            <div class="stat-label">Expanded Items</div>
-          </div>
-          <div class="stat">
-            <div class="stat-value">{{ uniqueLoadedItemsCount }}</div>
-            <div class="stat-label">Loaded Items</div>
-          </div>
-          <div class="stat">
-            <div class="stat-value">{{ scrollProps.totalItems }}</div>
-            <div class="stat-label">Total Items</div>
-          </div>
-        </div>
+        <VerticalExample />
+
+        <div style="height: 50px;"></div>
+
+        <HorizontalExample />
       </div>
     </main>
     
@@ -131,124 +36,8 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
-import LazyVirtualScroll, { type Dataset, type LoadEventPayload } from '@lazy-virtual-scroll/vue';
-import ScrollPropControls from './ScrollPropControls.vue';
-import { 
-  type ScrollProps,
-  defaultScrollProps
-} from '@lazy-virtual-scroll/core';
-import { 
-  loadDatasetWithDelay
-} from '@lazy-virtual-scroll/shared-mock';
-
-// Initialize with default values from core
-const scrollProps = ref<ScrollProps>({ 
-  ...defaultScrollProps,
-  totalItems: 300,
- });
-const openItems = ref<{ [itemIndex: string]: number }>({});
-const loadedDatasets = ref<Dataset<object>[]>([]);
-const itemShowCounts = ref<{ [key: number]: number }>({});
-const hiddenItems = ref<Set<number>>(new Set());
-const expandedItemHeight = 500;
-
-const datasets = computed(() => loadedDatasets.value);
-
-const formattedDatasets = computed(() => {
-  return datasets.value.map((d: Dataset<object>) => ({
-    startingIndex: d.startingIndex,
-    data: d.data.map((item, i) => {
-      const itemIndex = d.startingIndex + i;
-      return {
-        ...item,
-        isExpanded: itemIndex in openItems.value,
-        showCount: itemShowCounts.value[itemIndex] || 0,
-      };
-    }),
-  }));
-});
-
-const handleToggleExpand = (index: number) => {
-  if(index in openItems.value) {
-    const newOpenItems = { ...openItems.value };
-    delete newOpenItems[index];
-    openItems.value = newOpenItems;
-  } else {
-    openItems.value = { 
-      ...openItems.value,
-      [index]: expandedItemHeight
-    };
-  }
-};
-
-const handleLoad = (v: LoadEventPayload) => {
-  // When items need to be loaded, this callback fires
-  const startIndex = v.startIndex;
-  const endIndex = v.endIndex;
-  const itemCount = endIndex - startIndex + 1;
-  
-  // Update show counts for newly visible items
-  const newCounts = { ...itemShowCounts.value };
-  for (let i = startIndex; i <= endIndex; i++) {
-    // Increment count if item was previously hidden or if it's the first time
-    if (hiddenItems.value.has(i) || !(i in newCounts)) {
-      newCounts[i] = (newCounts[i] || 0) + 1;
-    }
-  }
-  itemShowCounts.value = newCounts;
-  
-  // Remove items from hidden set since they're now visible
-  const newHidden = new Set(hiddenItems.value);
-  for (let i = startIndex; i <= endIndex; i++) {
-    newHidden.delete(i);
-  }
-  hiddenItems.value = newHidden;
-  
-  // Check if we already have this data loaded
-  const alreadyLoaded = loadedDatasets.value.some(dataset => 
-    dataset.startingIndex <= startIndex && 
-    (dataset.startingIndex + dataset.data.length) >= (startIndex + itemCount)
-  );
-  
-  if (alreadyLoaded) {
-    // Data is already loaded, no need to fetch again
-    return;
-  }
-  
-  // Simulate fetching data
-  loadDatasetWithDelay(startIndex, itemCount)
-    .then((loadedDataset) => {
-      // Add the loaded dataset
-      loadedDatasets.value = [...loadedDatasets.value, loadedDataset];
-    })
-    .catch((error) => {
-      console.error('Failed to load dataset:', error);
-    });
-};
-
-const handleHide = (v: LoadEventPayload) => {
-  // When items go out of view, mark them as hidden
-  const startIndex = v.startIndex;
-  const endIndex = v.endIndex;
-  
-  const newHidden = new Set(hiddenItems.value);
-  for (let i = startIndex; i <= endIndex; i++) {
-    newHidden.add(i);
-  }
-  hiddenItems.value = newHidden;
-};
-
-// Compute unique loaded items count
-const uniqueLoadedItemsCount = computed(() => {
-  const loadedIndexes = new Set<number>();
-  loadedDatasets.value.forEach(dataset => {
-    for (let i = 0; i < dataset.data.length; i++) {
-      loadedIndexes.add(dataset.startingIndex + i);
-    }
-  });
-  return loadedIndexes.size;
-});
+import HorizontalExample from './HorizontalExample.vue';
+import VerticalExample from './VerticalExample.vue';
 </script>
 
 <style lang="scss">
@@ -392,8 +181,11 @@ body {
   }
   
   .item-title {
-    font-weight: 500;
-    overflow: hidden;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1e293b;
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -468,17 +260,11 @@ body {
   .item-preview {
     margin-top: 0.5rem;
     
-    .preview-line {
-      height: 8px;
-      background-color: #e2e8f0;
-      border-radius: 4px;
-      margin-bottom: 8px;
-      
-      &:nth-child(1) { width: 100%; }
-      &:nth-child(2) { width: 85%; }
-      &:nth-child(3) { width: 70%; }
-      &:nth-child(4) { width: 90%; }
-      &:nth-child(5) { width: 60%; }
+    .preview-text {
+      margin: 0;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #64748b;
     }
   }
 }
@@ -566,6 +352,7 @@ body {
 .loading-spinner {
   width: 24px;
   height: 24px;
+  flex: 0 0 auto;
   border: 3px solid #e2e8f0;
   border-top-color: #6366f1;
   border-radius: 50%;

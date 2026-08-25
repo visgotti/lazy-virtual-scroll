@@ -97,3 +97,28 @@ export function createLoadingState(resolveTime?: number): LoadingState {
 export function shouldResolveLoading(loadingState: LoadingState): boolean {
   return Date.now() >= loadingState.resolveTime;
 }
+
+/**
+ * Lorem ipsum sentences used for the demos' expanded-item body copy.
+ */
+const LOREM_SENTENCES = [
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+  'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+  'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
+  'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.',
+  'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia.',
+  'Curabitur pretium tincidunt lacus, nulla gravida orci a odio.',
+  'Nullam varius, turpis et commodo pharetra, est eros bibendum elit.',
+  'Aenean fermentum, elit eget tincidunt condimentum, eros ipsum rutrum orci.',
+];
+
+/**
+ * Deterministic lorem ipsum body copy for an item — same index always yields the
+ * same text, so it stays stable across re-renders and matches between demos.
+ */
+export function getLoremText(index: number, sentenceCount = 4): string {
+  return Array.from(
+    { length: sentenceCount },
+    (_, i) => LOREM_SENTENCES[(index + i) % LOREM_SENTENCES.length]
+  ).join(' ');
+}

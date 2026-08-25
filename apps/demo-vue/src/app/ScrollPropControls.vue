@@ -34,14 +34,14 @@
         <div class="control-grid">
           <div class="control-item range">
             <div class="control-header">
-              <label for="itemSize">
+              <label :for="`${idPrefix}-itemSize`">
                 Item Size
                 <span class="tooltip" title="Default height/width of each item in pixels">ⓘ</span>
               </label>
               <span class="value">{{localModelValue.itemSize}}px</span>
             </div>
             <input
-              id="itemSize"
+              :id="`${idPrefix}-itemSize`"
               type="range"
               v-model.number="localModelValue.itemSize"
               min="20"
@@ -52,14 +52,14 @@
 
           <div class="control-item range">
             <div class="control-header">
-              <label for="totalItems">
+              <label :for="`${idPrefix}-totalItems`">
                 Total Items
                 <span class="tooltip" title="Total number of items to render in the list">ⓘ</span>
               </label>
               <span class="value">{{localModelValue.totalItems}}</span>
             </div>
             <input
-              id="totalItems"
+              :id="`${idPrefix}-totalItems`"
               type="range"
               v-model.number="localModelValue.totalItems"
               min="10"
@@ -69,22 +69,19 @@
           </div>
 
           <div class="control-item">
-            <label for="autoDetectSizes">
+            <label>
               Auto Detect Sizes
               <span class="tooltip" title="Automatically detect and adjust to variable item sizes">ⓘ</span>
             </label>
-            <div class="toggle-switch">
+            <label class="toggle-switch">
               <input
-                id="autoDetectSizes"
                 type="checkbox"
                 v-model="localModelValue.autoDetectSizes"
               />
-              <span class="slider"
-                @click="localModelValue.autoDetectSizes = !localModelValue.autoDetectSizes"
-              ></span>
+              <span class="slider"></span>
               <span class="label-left">Off</span>
               <span class="label-right">On</span>
-            </div>
+            </label>
           </div>
         </div>
       </div>
@@ -93,14 +90,14 @@
         <div class="control-grid">
           <div class="control-item range">
             <div class="control-header">
-              <label for="itemBuffer">
+              <label :for="`${idPrefix}-itemBuffer`">
                 Item Buffer
                 <span class="tooltip" title="Number of items to render beyond visible area">ⓘ</span>
               </label>
               <span class="value">{{localModelValue.itemBuffer}}</span>
             </div>
             <input
-              id="itemBuffer"
+              :id="`${idPrefix}-itemBuffer`"
               type="range"
               v-model.number="localModelValue.itemBuffer"
               min="0"
@@ -111,14 +108,14 @@
 
           <div class="control-item range">
             <div class="control-header">
-              <label for="scrollStart">
+              <label :for="`${idPrefix}-scrollStart`">
                 Scroll Start Position
                 <span class="tooltip" title="Initial scroll position in pixels">ⓘ</span>
               </label>
               <span class="value">{{localModelValue.scrollStart}}px</span>
             </div>
             <input
-              id="scrollStart"
+              :id="`${idPrefix}-scrollStart`"
               type="range"
               v-model.number="localModelValue.scrollStart"
               min="0"
@@ -129,39 +126,36 @@
 
           <div class="control-item range">
             <div class="control-header">
-              <label for="minItemSize">
+              <label :for="`${idPrefix}-minItemSize`">
                 Min Item Size
                 <span class="tooltip" title="Minimum height/width for items with dynamic sizing">ⓘ</span>
               </label>
               <span class="value">{{localModelValue.minItemSize}}px</span>
             </div>
             <input
-              id="minItemSize"
+              :id="`${idPrefix}-minItemSize`"
               type="range"
               v-model.number="localModelValue.minItemSize"
               min="0"
-              max="100"
+              max="400"
               step="5"
             />
           </div>
 
           <div class="control-item">
-            <label for="sortDatasets">
+            <label>
               Sort Datasets
               <span class="tooltip" title="Whether to sort datasets by their starting index">ⓘ</span>
             </label>
-            <div class="toggle-switch">
+            <label class="toggle-switch">
               <input
-                id="sortDatasets"
                 type="checkbox"
                 v-model="localModelValue.sortDatasets"
               />
-              <span class="slider"
-                @click="localModelValue.sortDatasets = !localModelValue.sortDatasets"
-              ></span>
+              <span class="slider"></span>
               <span class="label-left">Off</span>
               <span class="label-right">On</span>
-            </div>
+            </label>
           </div>
         </div>
       </div>
@@ -170,14 +164,14 @@
         <div class="control-grid">
           <div class="control-item range">
             <div class="control-header">
-              <label for="scrollThrottle">
+              <label :for="`${idPrefix}-scrollThrottle`">
                 Scroll Throttle
                 <span class="tooltip" title="Sets the throttling time for scroll events in milliseconds">ⓘ</span>
               </label>
               <span class="value">{{localModelValue.scrollThrottle}}ms</span>
             </div>
             <input
-              id="scrollThrottle"
+              :id="`${idPrefix}-scrollThrottle`"
               type="range"
               v-model.number="localModelValue.scrollThrottle"
               min="0"
@@ -188,14 +182,14 @@
 
           <div class="control-item range">
             <div class="control-header">
-              <label for="scrollDebounce">
+              <label :for="`${idPrefix}-scrollDebounce`">
                 Scroll Debounce
                 <span class="tooltip" title="Sets the debounce time for scroll events in milliseconds">ⓘ</span>
               </label>
               <span class="value">{{localModelValue.scrollDebounce}}ms</span>
             </div>
             <input
-              id="scrollDebounce"
+              :id="`${idPrefix}-scrollDebounce`"
               type="range"
               v-model.number="localModelValue.scrollDebounce"
               min="0"
@@ -214,7 +208,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { type ScrollProps, defaultScrollProps } from '@lazy-virtual-scroll/core';
 
 const props = defineProps<{
@@ -222,8 +216,11 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (event: 'update:modelValue', value: ScrollProps): void;
+  (e: 'update:modelValue', value: ScrollProps): void;
 }>();
+
+// Generate a unique ID prefix for this component instance
+const idPrefix = `ctrl-${Math.random().toString(36).substr(2, 9)}`;
 
 // State for controlling the visibility of the controls
 const isExpanded = ref(true);
@@ -234,32 +231,34 @@ const toggleControls = () => {
   isExpanded.value = !isExpanded.value;
 };
 
-// Create a local copy of the model value using computed property
-const localModelValue = computed({
-  get: () => {
-    // If modelValue is undefined or null, return default props with totalItems
-    if (!props.modelValue) {
-      return {
-        ...defaultScrollProps,
-        totalItems: 300
-      } as ScrollProps;
-    }
-    // Otherwise return the model value
-    return props.modelValue;
-  },
-  set: (value: ScrollProps) => {
-    emit('update:modelValue', value);
+// Toggle direction between column and row
+const isHorizontal = computed({
+  get: () => localModelValue.value.direction === 'row',
+  set: (val) => {
+    localModelValue.value.direction = val ? 'row' : 'column';
   }
 });
 
-// Toggle direction between column and row
-const toggleDirection = () => {
-  const currentValue = { ...localModelValue.value };
-  localModelValue.value = {
-    ...currentValue,
-    direction: currentValue.direction === 'column' ? 'row' : 'column'
-  };
-};
+// Create a local copy of the model value
+const localModelValue = ref({ ...props.modelValue });
+
+// Watch for changes in props to update local state
+watch(() => props.modelValue, (newValue) => {
+  // Simple equality check to avoid loops if possible, but for now just update
+  // We use JSON stringify to avoid infinite loops when object reference changes but content is same
+  if (JSON.stringify(newValue) !== JSON.stringify(localModelValue.value)) {
+    localModelValue.value = { ...newValue };
+  }
+}, { deep: true });
+
+// Watch for changes in the local model value and emit updates
+watch(
+  localModelValue,
+  (newValue) => {
+    emit('update:modelValue', { ...newValue });
+  },
+  { deep: true }
+);
 
 // Reset all values to their defaults
 const resetToDefaults = () => {
@@ -385,7 +384,6 @@ const resetToDefaults = () => {
   &.range {
     input[type="range"] {
       -webkit-appearance: none;
-      appearance: none;
       width: 100%;
       height: 6px;
       border-radius: 10px;

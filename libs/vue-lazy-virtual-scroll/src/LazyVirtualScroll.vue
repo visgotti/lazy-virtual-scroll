@@ -23,8 +23,8 @@
 </template>
 
 <script lang="ts" setup>
-import { resolveIndexes, utils, type Dataset } from '@core';
-import { computed, ref, watch, defineProps, defineEmits, onMounted, onUnmounted, nextTick, toRefs } from 'vue';
+import { resolveIndexes, utils, type Dataset, type LazyDataSource } from '@core';
+import { computed, ref, shallowRef, watch, defineProps, defineEmits, onMounted, onUnmounted, nextTick, toRefs } from 'vue';
 import type { PropType, Ref } from 'vue';
 import { useDebounceFn } from './useDebounceFn';
 import { useThrottle } from './useThrottle';
@@ -39,6 +39,9 @@ const scrollInner: Ref<HTMLDivElement> = ref<HTMLDivElement>() as Ref<HTMLDivEle
 
 // Track previous range for onHide callback
 const prevRangeRef = ref<{ startIndex: number; endIndex: number } | null>(null);
+
+// Last viewport reported to `source`, so an unchanged range is never re-sent.
+let lastViewportKey: string | null = null;
 
 const props = defineProps({
   totalItems: {
@@ -76,6 +79,16 @@ const props = defineProps({
   datasets: {
     type: Array as PropType<Dataset[]>,
     required: false,
+  },
+  /**
+   * Opt-in data source (see `useLazyDataSource`). When present the list renders
+   * rows from the source and reports its viewport to it, instead of using the
+   * `data`/`datasets` props. The `load`/`hide` events fire either way, so
+   * existing listeners keep working.
+   */
+  source: {
+    type: Object as PropType<LazyDataSource<any>>,
+    default: null,
   },
   itemBuffer: {
     type: Number,
@@ -173,7 +186,33 @@ const orderedDatasets = computed(() => {
   return datasetsEnsured.sort((a, b) => a.startingIndex - b.startingIndex);
 });
 
+// Bumped whenever the source caches new rows, so `finalArray` recomputes.
+const sourceVersion = shallowRef(0);
+let unsubscribeSource: (() => void) | null = null;
+
+watch(
+  () => props.source,
+  (source) => {
+    unsubscribeSource?.();
+    unsubscribeSource = null;
+    lastViewportKey = null;
+    if (!source) return;
+    sourceVersion.value = source.getVersion();
+    unsubscribeSource = source.subscribe(() => {
+      sourceVersion.value = source.getVersion();
+    });
+  },
+  { immediate: true }
+);
+
 const finalArray = computed(() => {
+  // peek() is synchronous by contract, so this stays a plain computed even
+  // when the rows actually live in IndexedDB.
+  if (props.source) {
+    // Touch the version so new rows invalidate this computed.
+    void sourceVersion.value;
+    return props.source.peek(startIndex.value, endIndex.value);
+  }
   return utils.fillAndFlattenDatasets({
     orderedDatasets: orderedDatasets.value,
     startIndex: startIndex.value,
@@ -194,7 +233,17 @@ const handleScroll = (e?: any) => {
   totalLength.value = resolved.totalItemHeight;
   scrollMargin.value = scrollOuter.value[scrollProp.value] - resolved.scrollTopPadding;
   scrollLength.value = totalLength.value - scrollMargin.value;
-  
+
+  // Keyed separately from the index comparison below so the very first viewport
+  // still reaches the source when it resolves to 0..0.
+  if (props.source) {
+    const viewportKey = `${resolved.startIndex}:${resolved.endIndex}`;
+    if (lastViewportKey !== viewportKey) {
+      lastViewportKey = viewportKey;
+      void props.source.setViewport(resolved.startIndex, resolved.endIndex);
+    }
+  }
+
   if (resolved.startIndex !== startIndex.value || resolved.endIndex !== endIndex.value) {
     const prevRange = prevRangeRef.value;
     
@@ -269,6 +318,8 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResizeEvent);
   Object.values(resizeObservers).forEach(({ observer }) => observer.disconnect());
   resetOuterObserver();
+  unsubscribeSource?.();
+  unsubscribeSource = null;
 });
 
 watch(scrollOuter, (v) => {
@@ -371,7 +422,7 @@ const setItemRef = (index: number, el: HTMLElement) => {
       const margin1 = parseFloat(style[marginProp.value]);
       const margin2 = parseFloat(style[marginProp2.value]);
       const finalLength = Math.max(length + margin1 + margin2, props.minItemSize);
-      if(finalLength !== props.itemSize) {
+      if(finalLength !== estimatedItemSize.value) {
         internalDynamicSizes.value[finalIndex] = finalLength;
       } else {
         delete internalDynamicSizes.value[finalIndex];

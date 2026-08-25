@@ -33,6 +33,15 @@ export default defineConfig({
   //  plugins: [ nxViteTsPaths() ],
   // },
 
+  test: {
+    watch: false,
+    globals: true,
+    environment: 'jsdom',
+    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    reporters: ['default'],
+    coverage: { reportsDirectory: '../../coverage/vue-lazy-virtual-scroll', provider: 'v8' },
+  },
+
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
   build: {

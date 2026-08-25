@@ -74,10 +74,21 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
   
   const resizeObservers = useRef<{[index: string]: { el: HTMLElement, observer: ResizeObserver } }>({});
 
-  // Combine dynamic sizes properly
+  // Combine dynamic sizes properly. Kept in a ref as well because
+  // handleScroll reads it outside of render (scroll/resize callbacks) and
+  // must not close over a stale map.
   const dynamicSizesRef = useMemo(() => {
     return autoDetectSizes ? internalDynamicSizes : dynamicSizes;
   }, [autoDetectSizes, internalDynamicSizes, dynamicSizes]);
+  const currentDynamicSizesRef = useRef(dynamicSizesRef);
+  currentDynamicSizesRef.current = dynamicSizesRef;
+
+  // Items we have not measured yet are estimated at `itemSize`; the floor
+  // applies to them too, otherwise the scroll length jumps as they resolve.
+  const estimatedItemSize = useMemo(
+    () => (autoDetectSizes ? Math.max(itemSize, minItemSize) : itemSize),
+    [autoDetectSizes, itemSize, minItemSize]
+  );
 
   const orderedDatasets = useMemo(() => {
     const datasetsEnsured = datasets || [{
@@ -105,10 +116,10 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
     const resolved = resolveIndexes({
       scrollTop: scrollOuterRef.current[scrollProp],
       viewHeight: scrollOuterRef.current[clientLengthProp],
-      itemSize,
+      itemSize: estimatedItemSize,
       totalItems,
       itemBuffer,
-      dynamicSizes: internalDynamicSizesRef.current,
+      dynamicSizes: currentDynamicSizesRef.current,
     });
 
     setTotalLength(resolved.totalItemHeight);
@@ -149,7 +160,7 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
         onLoad({ startIndex: resolved.startIndex, endIndex: resolved.endIndex });
       }
     }
-  }, [scrollProp, clientLengthProp, itemSize, totalItems, itemBuffer, startIndex, endIndex, onLoad, onHide]);
+  }, [scrollProp, clientLengthProp, estimatedItemSize, totalItems, itemBuffer, startIndex, endIndex, onLoad, onHide]);
 
   // Effect to trigger handleScroll when dynamic sizes change - but debounced
   const debouncedHandleScrollForSizes = useDebounceFn(handleScroll, 16); // ~60fps
@@ -219,13 +230,13 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
       
       // Only update if the size actually changed significantly
       const currentSize = internalDynamicSizesRef.current[finalIndex];
-      const shouldUpdate = Math.abs((currentSize || itemSize) - finalLength) > 1;
+      const shouldUpdate = Math.abs((currentSize || estimatedItemSize) - finalLength) > 1;
       
       if (shouldUpdate) {
         isUpdatingRef.current = true;
         setInternalDynamicSizes(prevSizes => {
           const newSizes = { ...prevSizes };
-          if (finalLength !== itemSize) {
+          if (finalLength !== estimatedItemSize) {
             newSizes[finalIndex] = finalLength;
           } else {
             delete newSizes[finalIndex];
@@ -260,7 +271,7 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
       observer.observe(el);
       resizeObservers.current[finalIndex] = { observer, el };
     });
-  }, [autoDetectSizes, startIndex, lengthProp, marginProp, marginProp2, minItemSize, itemSize]);
+  }, [autoDetectSizes, startIndex, lengthProp, marginProp, marginProp2, minItemSize, estimatedItemSize]);
 
   // Cleanup observers for items no longer in view
   useEffect(() => {
@@ -288,9 +299,15 @@ const LazyVirtualScroll: React.FC<VirtualLazyScrollProps> = ({
     return utils.scrollInnerStyle(scrollLength, scrollMargin, direction, scrollInnerStyleOverrides)
   }, [direction, scrollLength, scrollMargin, scrollInnerStyleOverrides]);
   
-  const listItemStyle = {
-    display: 'inline-block'
-  }
+  // The measured floor has to exist in the DOM too, not just in the scroll
+  // math: min-height/min-width makes the browser enforce `minItemSize`, so
+  // what the ResizeObserver measures already agrees with what we lay out.
+  const listItemStyle = useMemo(() => ({
+    display: 'inline-block',
+    ...(autoDetectSizes && minItemSize
+      ? { [direction === 'column' ? 'minHeight' : 'minWidth']: `${minItemSize}px` }
+      : {}),
+  }), [autoDetectSizes, minItemSize, direction]);
 
   return (
     <div className={outerClassName} ref={handleScrollOuterRef} style={scrollOuterStyleObject}>

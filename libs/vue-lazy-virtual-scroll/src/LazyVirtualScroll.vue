@@ -142,9 +142,22 @@ const dynamicSizesRef = computed(() => {
   return autoDetectSizes.value ? internalDynamicSizes.value : (dynamicSizes.value ?? {});
 });
 
+// Items we have not measured yet are estimated at `itemSize`; the floor
+// applies to them too, otherwise the scroll length jumps as they resolve.
+const estimatedItemSize = computed(() =>
+  autoDetectSizes.value ? Math.max(props.itemSize, props.minItemSize) : props.itemSize
+);
+
 watch([dynamicSizesRef, totalItems], () => {
   handleScroll();
 }, { deep: true });
+
+// A `minItemSize` change can leave the measured map untouched (every item
+// still lands exactly on the floor), so the watch above never fires — the
+// scroll length has to be recomputed off the estimate itself.
+watch(estimatedItemSize, () => {
+  handleScroll();
+});
 
 const orderedDatasets = computed(() => {
   const datasetsEnsured = datasets?.value 
@@ -174,6 +187,7 @@ const handleScroll = (e?: any) => {
     scrollTop: scrollOuter.value[scrollProp.value],
     viewHeight: scrollOuter.value[clientLengthProp.value],
     ...props,
+    itemSize: estimatedItemSize.value,
     dynamicSizes: dynamicSizesRef.value,
   });
 
@@ -300,8 +314,12 @@ const scrollOuterStyleObject = computed(() => {
   return utils.scrollOuterStyle(lengthProp.value, obj);
 });
 
+// The measured floor has to exist in the DOM too, not just in the scroll
+// math: min-height/min-width makes the browser enforce `minItemSize`, so what
+// the ResizeObserver measures already agrees with what we lay out.
 const listItemStyleObject = computed(() => ({
   display: 'inline-block',
+  ...(props.minItemSize ? { [`min-${lengthProp.value}`]: `${props.minItemSize}px` } : {}),
   ...(props.listItemStyle || {}),
 }))
 

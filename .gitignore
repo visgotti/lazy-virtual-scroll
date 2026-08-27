@@ -1,7 +1,7 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
 # compiled output
-dist
+dist*/
 tmp
 /out-tsc
 
@@ -43,3 +43,8 @@ Thumbs.db
 
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+# local design/plan scratch (not tracked)
+docs/superpowers/
+
+# Playwright MCP session artifacts
+.playwright-mcp/

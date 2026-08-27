@@ -1,7 +1,7 @@
 <template>
   <div>
     <h2>Horizontal Scroll</h2>
-    <ScrollPropControls v-model="demo.scrollProps.value" />
+    <ScrollPropControls v-model="demo.scrollProps.value" :defaults="demo.initialScrollProps" />
     <div class="demo-container horizontal" style="height: 300px;">
       <LazyVirtualScroll
         class="demo"
@@ -21,7 +21,7 @@
         :direction="demo.scrollProps.value.direction"
       >
         <template #default="{ item, index }">
-          <div class="item" :class="{'expanded': index in demo.openItems.value}" style="width: 250px; min-width: 250px; max-width: 250px; height: 100%; border-bottom: none; border-right: 1px solid #e2e8f0;">
+          <div class="item" :class="{'expanded': index in demo.openItems.value}" :style="itemStyle(index)">
             <div class="item-header">
               <div class="item-title">
                 {{ item.name }}
@@ -34,12 +34,7 @@
                 </button>
               </div>
             </div>
-            <div v-if="item.isExpanded" class="item-content"
-              :style="{
-                height: `${demo.openItems.value[index]}px`,
-                minHeight: `${demo.openItems.value[index]}px`,
-              }"
-            >
+            <div v-if="item.isExpanded" class="item-content">
               <div class="item-details">
                 <div class="item-section">
                   <h4>Item Details</h4>
@@ -58,7 +53,7 @@
           </div>
         </template>
         <template #loading="{ index }">
-          <div class="item" style="width: 250px; min-width: 250px; max-width: 250px; height: 100%; border-bottom: none; border-right: 1px solid #e2e8f0;">
+          <div class="item" :style="itemStyle()">
             <div class="item-header">
               <div class="item-title">
                 <div class="loading-content">
@@ -111,4 +106,18 @@ import { useVirtualListDemo } from './useVirtualListDemo';
 import { getLoremText } from '@lazy-virtual-scroll/shared-mock';
 
 const demo = useVirtualListDemo({ direction: 'row', itemSize: 250 });
+
+// A row-direction list is sized along its width: the item box has to follow the
+// same axis the scroller reserves space on, expanded or not.
+const itemStyle = (index?: number) => {
+  const size = (index !== undefined && demo.openItems.value[index]) || demo.scrollProps.value.itemSize;
+  return {
+    width: `${size}px`,
+    minWidth: `${size}px`,
+    maxWidth: `${size}px`,
+    height: '100%',
+    borderBottom: 'none',
+    borderRight: '1px solid #e2e8f0',
+  };
+};
 </script>

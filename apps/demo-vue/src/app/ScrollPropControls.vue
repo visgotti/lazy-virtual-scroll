@@ -3,7 +3,6 @@
     <div class="header-row">
       <div class="header-left">
         <h3>Control Panel</h3>
-        <span class="badge">{{localModelValue.direction === 'column' ? 'Vertical' : 'Horizontal'}}</span>
         <span class="badge">{{localModelValue.autoDetectSizes ? 'Dynamic Sizing' : 'Fixed Sizing'}}</span>
       </div>
       <button class="toggle-button" @click="toggleControls">
@@ -45,7 +44,7 @@
               type="range"
               v-model.number="localModelValue.itemSize"
               min="20"
-              max="200"
+              max="400"
               step="5"
             />
           </div>
@@ -208,19 +207,24 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { ref, useId, watch } from 'vue';
 import { type ScrollProps, defaultScrollProps } from '@lazy-virtual-scroll/core';
 
 const props = defineProps<{
   modelValue: ScrollProps;
+  /**
+   * The props this example was seeded with. Reset restores these rather than the
+   * library defaults, which would drop a per-example direction/itemSize.
+   */
+  defaults?: ScrollProps;
 }>();
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: ScrollProps): void;
 }>();
 
-// Generate a unique ID prefix for this component instance
-const idPrefix = `ctrl-${Math.random().toString(36).substr(2, 9)}`;
+// Scopes this instance's DOM ids: the page renders one panel per example.
+const idPrefix = useId();
 
 // State for controlling the visibility of the controls
 const isExpanded = ref(true);
@@ -230,14 +234,6 @@ const activeTab = ref('basic');
 const toggleControls = () => {
   isExpanded.value = !isExpanded.value;
 };
-
-// Toggle direction between column and row
-const isHorizontal = computed({
-  get: () => localModelValue.value.direction === 'row',
-  set: (val) => {
-    localModelValue.value.direction = val ? 'row' : 'column';
-  }
-});
 
 // Create a local copy of the model value
 const localModelValue = ref({ ...props.modelValue });
@@ -262,10 +258,9 @@ watch(
 
 // Reset all values to their defaults
 const resetToDefaults = () => {
-  localModelValue.value = { 
-    ...defaultScrollProps,
-    totalItems: 300,
-  };
+  localModelValue.value = props.defaults
+    ? { ...props.defaults }
+    : { ...defaultScrollProps, totalItems: 300 };
 };
 </script>
 

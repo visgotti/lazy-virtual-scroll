@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { ScrollProps, defaultScrollProps } from '@lazy-virtual-scroll/core';
 import './ScrollPropControls.scss';
 
 interface ScrollPropControlsProps {
   scrollProps: ScrollProps;
   onChange: (props: ScrollProps) => void;
+  /**
+   * The props this example was seeded with. Reset restores these rather than the
+   * library defaults, which would drop a per-example direction/itemSize.
+   */
+  defaults?: ScrollProps;
 }
 
-const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, onChange }) => {
+const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, onChange, defaults }) => {
+  // Scopes this instance's DOM ids: the page renders one panel per example.
+  const idPrefix = useId();
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState('basic');
   const [localProps, setLocalProps] = useState<ScrollProps>({ ...defaultScrollProps, ...scrollProps });
@@ -23,17 +30,10 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
     }));
   };
 
-  const toggleDirection = () => {
-    setLocalProps((prev: ScrollProps) => ({
-      ...prev,
-      direction: prev.direction === 'column' ? 'row' : 'column'
-    }));
-  };
-
   const resetToDefaults = () => {
-    setLocalProps({ 
-      totalItems: 300,
+    setLocalProps(defaults ?? {
       ...defaultScrollProps,
+      totalItems: 300,
     });
   };
 
@@ -74,14 +74,14 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
               <div className="control-grid">
                 <div className="control-item range">
                   <div className="control-header">
-                    <label htmlFor="totalItems">
+                    <label htmlFor={`${idPrefix}-totalItems`}>
                       Total Items
                       <span className="tooltip" data-tip="Total number of items to render in the list">ⓘ</span>
                     </label>
                     <span className="value">{localProps.totalItems}</span>
                   </div>
                   <input
-                    id="totalItems"
+                    id={`${idPrefix}-totalItems`}
                     type="range"
                     min="10"
                     max="10000"
@@ -92,19 +92,19 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
                 </div>
 
                 <div className="control-item">
-                  <label htmlFor="autoDetectSizes">
+                  <label htmlFor={`${idPrefix}-autoDetectSizes`}>
                     Auto Detect Sizes
                     <span className="tooltip" data-tip="Automatically detect and adjust to variable item sizes">ⓘ</span>
                   </label>
                   <div className="toggle-switch">
                     <input
-                      id="autoDetectSizes"
+                      id={`${idPrefix}-autoDetectSizes`}
                       type="checkbox"
                       checked={localProps.autoDetectSizes}
                       onChange={(e) => handleChange('autoDetectSizes', e.target.checked)}
                     />
                     <label 
-                      htmlFor="autoDetectSizes"
+                      htmlFor={`${idPrefix}-autoDetectSizes`}
                       className="slider-container"
                     >
                       <span className="slider"></span>
@@ -122,14 +122,14 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
               <div className="control-grid">
                 <div className="control-item range">
                   <div className="control-header">
-                    <label htmlFor="itemBuffer">
+                    <label htmlFor={`${idPrefix}-itemBuffer`}>
                       Item Buffer
                       <span className="tooltip" data-tip="Number of items to render beyond visible area">ⓘ</span>
                     </label>
                     <span className="value">{localProps.itemBuffer}</span>
                   </div>
                   <input
-                    id="itemBuffer"
+                    id={`${idPrefix}-itemBuffer`}
                     type="range"
                     min="0"
                     max="20"
@@ -141,14 +141,14 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
 
                 <div className="control-item range">
                   <div className="control-header">
-                    <label htmlFor="scrollStart">
+                    <label htmlFor={`${idPrefix}-scrollStart`}>
                       Scroll Start Position
                       <span className="tooltip" data-tip="Initial scroll position in pixels">ⓘ</span>
                     </label>
                     <span className="value">{localProps.scrollStart}px</span>
                   </div>
                   <input
-                    id="scrollStart"
+                    id={`${idPrefix}-scrollStart`}
                     type="range"
                     min="0"
                     max="5000"
@@ -160,14 +160,14 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
 
                 <div className="control-item range">
                   <div className="control-header">
-                    <label htmlFor="minItemSize">
+                    <label htmlFor={`${idPrefix}-minItemSize`}>
                       Min Item Size
                       <span className="tooltip" data-tip="Minimum height/width for items with dynamic sizing">ⓘ</span>
                     </label>
                     <span className="value">{localProps.minItemSize}px</span>
                   </div>
                   <input
-                    id="minItemSize"
+                    id={`${idPrefix}-minItemSize`}
                     type="range"
                     min="0"
                     max="400"
@@ -178,19 +178,19 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
                 </div>
 
                 <div className="control-item">
-                  <label htmlFor="sortDatasets">
+                  <label htmlFor={`${idPrefix}-sortDatasets`}>
                     Sort Datasets
                     <span className="tooltip" data-tip="Whether to sort datasets by their starting index">ⓘ</span>
                   </label>
                   <div className="toggle-switch">
                     <input
-                      id="sortDatasets"
+                      id={`${idPrefix}-sortDatasets`}
                       type="checkbox"
                       checked={localProps.sortDatasets}
                       onChange={(e) => handleChange('sortDatasets', e.target.checked)}
                     />                    
                     <label 
-                      htmlFor="sortDatasets"
+                      htmlFor={`${idPrefix}-sortDatasets`}
                       className="slider-container"
                     >
                       <span className="slider"></span>
@@ -208,14 +208,14 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
               <div className="control-grid">
                 <div className="control-item range">
                   <div className="control-header">
-                    <label htmlFor="scrollThrottle">
+                    <label htmlFor={`${idPrefix}-scrollThrottle`}>
                       Scroll Throttle
                       <span className="tooltip" data-tip="Sets the throttling time for scroll events in milliseconds">ⓘ</span>
                     </label>
                     <span className="value">{localProps.scrollThrottle}ms</span>
                   </div>
                   <input
-                    id="scrollThrottle"
+                    id={`${idPrefix}-scrollThrottle`}
                     type="range"
                     min="0"
                     max="200"
@@ -227,14 +227,14 @@ const ScrollPropControls: React.FC<ScrollPropControlsProps> = ({ scrollProps, on
 
                 <div className="control-item range">
                   <div className="control-header">
-                    <label htmlFor="scrollDebounce">
+                    <label htmlFor={`${idPrefix}-scrollDebounce`}>
                       Scroll Debounce
                       <span className="tooltip" data-tip="Sets the debounce time for scroll events in milliseconds">ⓘ</span>
                     </label>
                     <span className="value">{localProps.scrollDebounce}ms</span>
                   </div>
                   <input
-                    id="scrollDebounce"
+                    id={`${idPrefix}-scrollDebounce`}
                     type="range"
                     min="0"
                     max="500"

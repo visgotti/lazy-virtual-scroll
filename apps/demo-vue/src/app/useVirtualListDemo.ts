@@ -10,16 +10,19 @@ import {
 
 export const useVirtualListDemo = (initialProps: Partial<ScrollProps> = {}) => {
   // Initialize with default values from core
-  const scrollProps = ref<ScrollProps>({ 
+  const initialScrollProps: ScrollProps = {
     ...defaultScrollProps,
     totalItems: 300,
     ...initialProps
-  });
+  };
+  const scrollProps = ref<ScrollProps>({ ...initialScrollProps });
   const openItems = ref<{ [itemIndex: string]: number }>({});
   const loadedDatasets = ref<Dataset<object>[]>([]);
   const itemShowCounts = ref<{ [key: number]: number }>({});
   const hiddenItems = ref<Set<number>>(new Set());
-  const expandedItemHeight = 500;
+  // Size the item grows to along the scroll axis when expanded (height for a
+  // column, width for a row) - this is what the library tracks via dynamicSizes.
+  const expandedItemSize = 500;
 
   const datasets = computed(() => loadedDatasets.value);
 
@@ -45,7 +48,7 @@ export const useVirtualListDemo = (initialProps: Partial<ScrollProps> = {}) => {
     } else {
       openItems.value = { 
         ...openItems.value,
-        [index]: expandedItemHeight
+        [index]: expandedItemSize
       };
     }
   };
@@ -120,6 +123,7 @@ export const useVirtualListDemo = (initialProps: Partial<ScrollProps> = {}) => {
 
   return {
     scrollProps,
+    initialScrollProps,
     openItems,
     formattedDatasets,
     handleToggleExpand,

@@ -13,17 +13,20 @@ import ScrollPropControls from './ScrollPropControls';
 import './app.scss';
 
 const useVirtualListDemo = (initialProps: Partial<ScrollProps> = {}) => {
-  const [scrollProps, setScrollProps] = useState<ScrollProps>({
-    totalItems: 300,
+  const initialScrollProps: ScrollProps = {
     ...defaultScrollProps,
+    totalItems: 300,
     ...initialProps
-  });
+  };
+  const [scrollProps, setScrollProps] = useState<ScrollProps>(initialScrollProps);
   const [openItems, setOpenItems] = useState<{ [itemIndex: string]: number }>({});
   const [loadedDatasets, setLoadedDatasets] = useState<Dataset[]>([]);
   const [itemShowCounts, setItemShowCounts] = useState<{ [key: number]: number }>({});
   const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
 
-  const expandedItemHeight = 500;
+  // Size the item grows to along the scroll axis when expanded (height for a
+  // column, width for a row) - this is what the library tracks via dynamicSizes.
+  const expandedItemSize = 500;
 
   const formattedDatasets = useMemo(() => {
     return loadedDatasets.map((d: Dataset) => ({
@@ -47,7 +50,7 @@ const useVirtualListDemo = (initialProps: Partial<ScrollProps> = {}) => {
     } else {
       setOpenItems({ 
         ...openItems,
-        [index]: expandedItemHeight
+        [index]: expandedItemSize
       });
     }
   };  const handleLoad = (v: LoadEventPayload) => {
@@ -127,6 +130,7 @@ const useVirtualListDemo = (initialProps: Partial<ScrollProps> = {}) => {
   return {
     scrollProps,
     setScrollProps,
+    initialScrollProps,
     openItems,
     handleToggleExpand,
     formattedDatasets,
@@ -140,9 +144,19 @@ const App: React.FC = () => {
   const verticalDemo = useVirtualListDemo({ direction: 'column' });
   const horizontalDemo = useVirtualListDemo({ direction: 'row', itemSize: 250 });
 
-  const renderItem = (demo: ReturnType<typeof useVirtualListDemo>, style?: React.CSSProperties) => (index: number, item: MockDataItem & { showCount: number }) => {
+  // A row-direction list is sized along its width, so the expanded size and the
+  // item's own box have to follow that axis - otherwise the box the user sees and
+  // the extent the scroller reserves are two unrelated numbers.
+  const itemStyle = (demo: ReturnType<typeof useVirtualListDemo>, size: number): React.CSSProperties | undefined =>
+    demo.scrollProps.direction === 'row'
+      ? { width: size, minWidth: size, maxWidth: size, height: '100%', borderBottom: 'none', borderRight: '1px solid #e2e8f0' }
+      : undefined;
+
+  const renderItem = (demo: ReturnType<typeof useVirtualListDemo>) => (index: number, item: MockDataItem & { showCount: number }) => {
+    const horizontal = demo.scrollProps.direction === 'row';
+    const size = demo.openItems[index] ?? demo.scrollProps.itemSize;
     return (
-      <div className={`item${(index in demo.openItems) ? ' expanded' : ''}`} style={style}>
+      <div className={`item${(index in demo.openItems) ? ' expanded' : ''}`} style={itemStyle(demo, size)}>
         <div className="item-header">
           <div className="item-title">
             {item.name}
@@ -163,7 +177,7 @@ const App: React.FC = () => {
         
         {item.isExpanded && (
           <div className="item-content"
-            style={{
+            style={horizontal ? undefined : {
               height: `${demo.openItems[index]}px`,
               minHeight: `${demo.openItems[index]}px`,
             }}
@@ -188,8 +202,8 @@ const App: React.FC = () => {
     );
   };
 
-  const renderLoading = (style?: React.CSSProperties) => (index: number) => (
-    <div className="item" style={style}>
+  const renderLoading = (demo: ReturnType<typeof useVirtualListDemo>) => (index: number) => (
+    <div className="item" style={itemStyle(demo, demo.scrollProps.itemSize)}>
       <div className="item-header">
         <div className="item-title">
           <div className="loading-content">
@@ -237,7 +251,7 @@ const App: React.FC = () => {
           <p className="subtitle">Efficient rendering of large datasets with dynamic sizing and lazy loading</p>
           
           <h2>Vertical Scroll</h2>
-          <ScrollPropControls scrollProps={verticalDemo.scrollProps} onChange={verticalDemo.setScrollProps} />
+          <ScrollPropControls scrollProps={verticalDemo.scrollProps} onChange={verticalDemo.setScrollProps} defaults={verticalDemo.initialScrollProps} />
           <div className="demo-container">
             <LazyVirtualScroll
               className="demo"
@@ -245,7 +259,7 @@ const App: React.FC = () => {
               onHide={verticalDemo.handleHide}
               datasets={verticalDemo.formattedDatasets}
               totalItems={verticalDemo.scrollProps.totalItems}
-              itemSize={65}
+              itemSize={verticalDemo.scrollProps.itemSize}
               itemBuffer={verticalDemo.scrollProps.itemBuffer}
               autoDetectSizes={verticalDemo.scrollProps.autoDetectSizes}
               dynamicSizes={verticalDemo.openItems}
@@ -255,7 +269,7 @@ const App: React.FC = () => {
               minItemSize={verticalDemo.scrollProps.minItemSize}
               scrollStart={verticalDemo.scrollProps.scrollStart}
               direction={verticalDemo.scrollProps.direction}
-              renderLoading={renderLoading()}
+              renderLoading={renderLoading(verticalDemo)}
               render={renderItem(verticalDemo)}
             />
           </div>
@@ -278,7 +292,7 @@ const App: React.FC = () => {
           <div style={{ height: '50px' }}></div>
 
           <h2>Horizontal Scroll</h2>
-          <ScrollPropControls scrollProps={horizontalDemo.scrollProps} onChange={horizontalDemo.setScrollProps} />
+          <ScrollPropControls scrollProps={horizontalDemo.scrollProps} onChange={horizontalDemo.setScrollProps} defaults={horizontalDemo.initialScrollProps} />
           <div className="demo-container horizontal" style={{ height: '300px' }}>
             <LazyVirtualScroll
               className="demo"
@@ -296,8 +310,8 @@ const App: React.FC = () => {
               minItemSize={horizontalDemo.scrollProps.minItemSize}
               scrollStart={horizontalDemo.scrollProps.scrollStart}
               direction={horizontalDemo.scrollProps.direction}
-              renderLoading={renderLoading({ width: 250, height: '100%', borderBottom: 'none', borderRight: '1px solid #e2e8f0' })}
-              render={renderItem(horizontalDemo, { width: 250, height: '100%', borderBottom: 'none', borderRight: '1px solid #e2e8f0' })}
+              renderLoading={renderLoading(horizontalDemo)}
+              render={renderItem(horizontalDemo)}
             />
           </div>
           

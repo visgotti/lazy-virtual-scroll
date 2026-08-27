@@ -1,7 +1,7 @@
 <template>
   <div>
     <h2>Vertical Scroll</h2>
-    <ScrollPropControls v-model="demo.scrollProps.value" />
+    <ScrollPropControls v-model="demo.scrollProps.value" :defaults="demo.initialScrollProps" />
     <div class="demo-container">
       <LazyVirtualScroll
         class="demo"

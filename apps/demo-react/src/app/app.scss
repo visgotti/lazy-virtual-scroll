@@ -102,6 +102,24 @@ body {
   
   &.horizontal {
     height: 300px;
+
+    // In a row layout the scroller's inner track is auto-height, so an expanded
+    // card would stretch it past the viewport. Pin the track to the viewport and
+    // let the card's own body scroll instead.
+    .scroll-inner {
+      height: 100%;
+    }
+
+    .item {
+      display: flex;
+      flex-direction: column;
+
+      .item-content {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+      }
+    }
   }
   
   .demo {
